@@ -45,14 +45,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
     <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
       {/* Logo */}
       <div className="p-6 border-b border-gray-200">
-        <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">AA</span>
-          </div>
-          <div>
-            <h1 className="text-lg font-bold text-gray-900">Acute Algo</h1>
-            <p className="text-xs text-gray-500">Repository Analysis</p>
-          </div>
+        <div className="flex justify-center">
+          <h1 className="text-3xl font-bold text-black" 
+              style={{ fontFamily: 'Playfair Display, Georgia, serif' }}>
+            Acute Algo
+          </h1>
         </div>
       </div>
 
