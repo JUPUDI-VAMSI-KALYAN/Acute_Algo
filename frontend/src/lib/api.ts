@@ -135,6 +135,19 @@ export interface ChatResponse {
   conversationId?: string;
 }
 
+// Add AIModelInfo interface for available AI models
+export interface AIModelInfo {
+  id: string;
+  name: string;
+  [key: string]: unknown;
+}
+
+// Add ValidationError interface for validation errors
+interface ValidationError {
+  loc?: (string | number)[];
+  msg: string;
+}
+
 // API functions
 export const analyzeRepository = async (githubUrl: string): Promise<AnalysisData> => {
   try {
@@ -188,7 +201,7 @@ export const getAIServiceStatus = async (): Promise<AIServiceStatus> => {
   }
 };
 
-export const getAvailableAIModels = async (): Promise<any[]> => {
+export const getAvailableAIModels = async (): Promise<AIModelInfo[]> => {
   try {
     const response = await api.get('/api/ai/models');
     return response.data.models || [];
@@ -237,7 +250,7 @@ export const chatWithAI = async (request: ChatRequest): Promise<string> => {
       if (error.response?.status === 422) {
         const validationErrors = error.response?.data?.detail;
         if (Array.isArray(validationErrors)) {
-          const errorMessages = validationErrors.map((err: any) => 
+          const errorMessages = validationErrors.map((err: ValidationError) => 
             `${err.loc?.join('.')} - ${err.msg}`
           ).join(', ');
           throw new Error(`Validation error: ${errorMessages}`);

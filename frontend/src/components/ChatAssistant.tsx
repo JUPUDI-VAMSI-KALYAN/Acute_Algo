@@ -64,7 +64,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ functionInfo, repositoryI
         timestamp: new Date()
       }]);
     }
-  }, [functionInfo, repositoryInfo]);
+  }, [functionInfo, repositoryInfo, messages.length]);
 
   const suggestedQuestions = functionInfo ? [
     "What does this function do?",

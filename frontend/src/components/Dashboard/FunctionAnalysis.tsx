@@ -254,7 +254,7 @@ const DetailedFunctionView: React.FC<DetailedFunctionViewProps> = ({
             <div className="h-[70vh] min-h-[500px] max-h-[900px] p-4">
               {aiAnalysis ? (
                 <div className="h-full overflow-auto">
-                  <div className="bg-white p-4 rounded border border-gray-200 prose prose-sm max-w-none h-full">
+                  <div className="bg-white p-4 rounded border border-gray-200 prose prose-sm max-w-none h-full text-gray-800">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
                       {aiAnalysis.pseudocode}
                     </ReactMarkdown>
@@ -302,7 +302,7 @@ const DetailedFunctionView: React.FC<DetailedFunctionViewProps> = ({
                 <div className="h-full overflow-auto">
                   <div className="space-y-4">
                     {/* Complexity Analysis */}
-                    <div className="bg-white p-4 rounded border border-gray-200 prose prose-sm max-w-none">
+                    <div className="bg-white p-4 rounded border border-gray-200 prose prose-sm max-w-none text-gray-800">
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>
                         {aiAnalysis.complexityAnalysis}
                       </ReactMarkdown>
@@ -310,7 +310,7 @@ const DetailedFunctionView: React.FC<DetailedFunctionViewProps> = ({
 
                     {/* Optimization Suggestions */}
                     {aiAnalysis.optimizationSuggestions.length > 0 && (
-                      <div className="bg-white p-4 rounded border border-gray-200 prose prose-sm max-w-none">
+                      <div className="bg-white p-4 rounded border border-gray-200 prose prose-sm max-w-none text-gray-800">
                         {aiAnalysis.optimizationSuggestions.map((suggestion, index) => (
                           <ReactMarkdown key={index} remarkPlugins={[remarkGfm]}>
                             {suggestion}
@@ -321,7 +321,7 @@ const DetailedFunctionView: React.FC<DetailedFunctionViewProps> = ({
 
                     {/* Potential Issues */}
                     {aiAnalysis.potentialIssues.length > 0 && (
-                      <div className="bg-white p-4 rounded border border-gray-200 prose prose-sm max-w-none">
+                      <div className="bg-white p-4 rounded border border-gray-200 prose prose-sm max-w-none text-gray-800">
                         {aiAnalysis.potentialIssues.map((issue, index) => (
                           <ReactMarkdown key={index} remarkPlugins={[remarkGfm]}>
                             {issue}
@@ -364,10 +364,10 @@ export const FunctionAnalysis: React.FC<FunctionAnalysisProps> = ({ data }) => {
   } | null>(null);
   const { setSelectedFunction: setChatFunction } = useChatContext();
 
-  const closeDetailView = () => {
+  const closeDetailView = React.useCallback(() => {
     setSelectedFunction(null);
     setChatFunction(null); // Clear chat context when closing function view
-  };
+  }, [setChatFunction]);
 
   // Close detail view on ESC key
   React.useEffect(() => {
@@ -381,7 +381,7 @@ export const FunctionAnalysis: React.FC<FunctionAnalysisProps> = ({ data }) => {
       document.addEventListener('keydown', handleEscKey);
       return () => document.removeEventListener('keydown', handleEscKey);
     }
-  }, [selectedFunction]);
+  }, [selectedFunction, closeDetailView]);
 
   if (!data.functionAnalysis) {
     return (
