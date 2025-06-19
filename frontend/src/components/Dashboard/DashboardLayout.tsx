@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from 'react';
 import { AnalysisData } from '../../lib/api';
 import { Sidebar } from './Sidebar';
@@ -46,7 +48,7 @@ const DashboardContent: React.FC<DashboardLayoutProps> = ({
       case 'structure':
         return <FileStructure data={data} />;
       case 'code':
-        return <CodeViewer data={data} />;
+        return <CodeViewer analysisData={data} />;
       default:
         return <OverviewDashboard data={data} />;
     }

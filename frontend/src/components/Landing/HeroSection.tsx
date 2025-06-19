@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 
 interface HeroSectionProps {
-  onGetStarted: () => void;
+  onGetStarted?: () => void;
 }
 
 export const HeroSection: React.FC<HeroSectionProps> = ({ onGetStarted }) => {
@@ -17,8 +18,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onGetStarted }) => {
         setWordIndex((prev) => (prev + 1) % words.length);
         setCurrentWord(words[(wordIndex + 1) % words.length]);
         setIsTransitioning(false);
-      }, 500); // Wait for fade out animation to complete
-    }, 3000); // Change word every 3 seconds
+      }, 500);
+    }, 3000);
 
     return () => clearInterval(interval);
   }, [wordIndex, words]);
@@ -181,15 +182,32 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onGetStarted }) => {
 
         {/* Call to Action */}
         <div className="flex flex-col items-center justify-center space-y-6 animate-fade-in-up delay-1000">
-          <button
-            onClick={onGetStarted}
-            className="group relative px-8 py-4 text-lg font-semibold text-white bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg hover:from-blue-600 hover:to-purple-600 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center"
-          >
-            <span>Start Analyzing Your Code</span>
-            <svg className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-            </svg>
-          </button>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                onGetStarted?.();
+              }}
+              className="group relative px-8 py-4 text-lg font-semibold text-white bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg hover:from-blue-600 hover:to-purple-600 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center"
+            >
+              <span>Start Analyzing Your Code</span>
+              <svg className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </Link>
+            <a
+              href="https://calendly.com/jupudivamsikalyan/30min"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group relative px-8 py-4 text-lg font-semibold text-white bg-transparent border-2 border-white/50 rounded-lg hover:bg-white/10 hover:border-white transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center"
+            >
+              <span>Book a Demo</span>
+               <svg xmlns="http://www.w3.org/2000/svg" className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </a>
+          </div>
 
           {/* Feature Chips */}
           <div className="flex flex-wrap justify-center gap-3 mt-4">

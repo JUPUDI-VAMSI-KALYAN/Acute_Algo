@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from 'react';
 import { AnalysisData, analyzeRepository } from '../../lib/api';
 

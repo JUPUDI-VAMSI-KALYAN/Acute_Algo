@@ -1,22 +1,25 @@
-import type { Metadata } from "next";
-import { Header } from "@/components/Header";
-import "./globals.css";
+'use client';
 
-export const metadata: Metadata = {
-  title: "Acute Algo",
-  description: "Frontend for Acute Algo platform.",
-};
+import { Inter } from 'next/font/google';
+import './globals.css';
+import { Header } from '@/components/Header';
+import { usePathname } from 'next/navigation';
+
+const inter = Inter({ subsets: ['latin'] });
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
+  const pathname = usePathname();
+  const isDashboard = pathname === '/dashboard';
+
   return (
     <html lang="en">
-      <body className="antialiased bg-gray-900 min-h-screen">
-        <Header />
-        <main className="pt-16">
+      <body className={`${inter.className} antialiased bg-gray-900 min-h-screen`}>
+        {!isDashboard && <Header />}
+        <main className={!isDashboard ? 'pt-16' : ''}>
           {children}
         </main>
       </body>

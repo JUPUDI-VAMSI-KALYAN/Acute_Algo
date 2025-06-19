@@ -15,38 +15,29 @@ export const Header: React.FC = () => {
       <div className="w-full mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4">
           {/* Logo/Company Name */}
-          <Link href="/" className="flex items-center space-x-2">
-            <span className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-              Acute Algo
-            </span>
+          <Link href="/" className="text-xl font-bold text-white">
+            Acute Algo
           </Link>
 
           {/* Main Navigation */}
-          <nav className="hidden md:flex items-center space-x-6">
-            <Link 
-              href="/pricing" 
-              className="text-gray-300 hover:text-white transition-colors font-medium"
-            >
-              Pricing
+          <nav className="hidden md:flex items-center space-x-8">
+            <Link href="/dashboard" className="text-gray-300 hover:text-white transition-colors">
+              Dashboard
             </Link>
-            <Link 
-              href="/about" 
-              className="text-gray-300 hover:text-white transition-colors font-medium"
-            >
+            <Link href="#features" className="text-gray-300 hover:text-white transition-colors">
+              Features
+            </Link>
+            <Link href="#about" className="text-gray-300 hover:text-white transition-colors">
               About
-            </Link>
-            <Link 
-              href="/docs" 
-              className="text-gray-300 hover:text-white transition-colors font-medium"
-            >
-              Documentation
             </Link>
           </nav>
 
           {/* Action Buttons */}
           <div className="hidden md:flex items-center space-x-4">
             <Link
-              href="/demo"
+              href="https://calendly.com/jupudivamsikalyan/30min"
+              target="_blank"
+              rel="noopener noreferrer"
               className="px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all duration-200 transform hover:scale-105"
             >
               Book a Demo
@@ -110,8 +101,10 @@ export const Header: React.FC = () => {
           >
             Documentation
           </Link>
-          <Link 
-            href="/demo" 
+          <Link
+            href="https://calendly.com/jupudivamsikalyan/30min"
+            target="_blank"
+            rel="noopener noreferrer"
             className="block px-3 py-2 text-base font-medium text-white bg-gradient-to-r from-blue-500 to-purple-500 rounded-md"
             onClick={() => setIsMobileMenuOpen(false)}
           >

@@ -1,11 +1,13 @@
+'use client';
+
 import React, { useState } from 'react';
 import { AnalysisData, copyToClipboard } from '../../lib/api';
 
 interface CodeViewerProps {
-  data: AnalysisData;
+  analysisData: AnalysisData;
 }
 
-export const CodeViewer: React.FC<CodeViewerProps> = ({ data }) => {
+export const CodeViewer: React.FC<CodeViewerProps> = ({ analysisData }) => {
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copying' | 'success' | 'error'>('idle');
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -22,7 +24,7 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({ data }) => {
     setCopyStatus('copying');
     
     try {
-      const success = await copyToClipboard(data.fileContents);
+      const success = await copyToClipboard(analysisData.fileContents);
       if (success) {
         setCopyStatus('success');
         setTimeout(() => setCopyStatus('idle'), 3000);
@@ -62,12 +64,12 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({ data }) => {
           <div>
             <h2 className="text-xl font-bold text-gray-900 mb-2">Code Files</h2>
             <p className="text-gray-600">
-              All source code from <span className="font-medium">{data.repositoryName}</span>
+              All source code from <span className="font-medium">{analysisData.repositoryName}</span>
             </p>
           </div>
           <div className="flex items-center space-x-4">
             <div className="text-sm text-gray-500">
-              <span className="font-medium">{formatNumber(data.totalCharacters)}</span> characters
+              <span className="font-medium">{formatNumber(analysisData.totalCharacters)}</span> characters
             </div>
             <button
               onClick={handleCopyAll}
@@ -89,7 +91,7 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({ data }) => {
             </div>
             <div className="ml-3">
               <p className="text-sm text-gray-600">Characters</p>
-              <p className="text-xl font-bold text-gray-900">{formatNumber(data.totalCharacters)}</p>
+              <p className="text-xl font-bold text-gray-900">{formatNumber(analysisData.totalCharacters)}</p>
             </div>
           </div>
         </div>
@@ -101,12 +103,12 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({ data }) => {
             </div>
             <div className="ml-3">
               <p className="text-sm text-gray-600">Total Files</p>
-              <p className="text-xl font-bold text-gray-900">{data.fileCounts.total}</p>
+              <p className="text-xl font-bold text-gray-900">{analysisData.fileCounts.total}</p>
             </div>
           </div>
         </div>
 
-        {data.functionAnalysis && (
+        {analysisData.functionAnalysis && (
           <>
             <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
               <div className="flex items-center">
@@ -115,7 +117,7 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({ data }) => {
                 </div>
                 <div className="ml-3">
                   <p className="text-sm text-gray-600">Functions</p>
-                  <p className="text-xl font-bold text-gray-900">{data.functionAnalysis.totalFunctions}</p>
+                  <p className="text-xl font-bold text-gray-900">{analysisData.functionAnalysis.totalFunctions}</p>
                 </div>
               </div>
             </div>
@@ -127,7 +129,7 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({ data }) => {
                 </div>
                 <div className="ml-3">
                   <p className="text-sm text-gray-600">Avg/File</p>
-                  <p className="text-xl font-bold text-gray-900">{data.functionAnalysis.avgFunctionsPerFile}</p>
+                  <p className="text-xl font-bold text-gray-900">{analysisData.functionAnalysis.avgFunctionsPerFile}</p>
                 </div>
               </div>
             </div>
@@ -157,9 +159,9 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({ data }) => {
             <div className={`text-gray-100 font-mono text-sm overflow-x-auto ${
               isExpanded ? 'max-h-none' : 'max-h-96'
             } overflow-y-auto`}>
-              {data.fileContents ? (
+              {analysisData.fileContents ? (
                 <pre className="p-4 whitespace-pre-wrap">
-                  {data.fileContents}
+                  {analysisData.fileContents}
                 </pre>
               ) : (
                 <div className="p-8 text-center text-gray-400">
@@ -171,7 +173,7 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({ data }) => {
           </div>
         </div>
         
-        {!isExpanded && data.fileContents && (
+        {!isExpanded && analysisData.fileContents && (
           <div className="p-4 bg-gray-50 border-t border-gray-200 text-center">
             <button
               onClick={() => setIsExpanded(true)}

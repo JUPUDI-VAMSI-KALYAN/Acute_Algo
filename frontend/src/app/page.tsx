@@ -1,26 +1,62 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { DashboardLayout, HeroSection, RepositoryInput, UseCases } from '../components';
+import { HeroSection, RepositoryInput, UseCases } from '../components';
 import { AnalysisData } from '../lib/api';
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
-  const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
   const [error, setError] = useState<string>('');
-  const [currentGithubUrl, setCurrentGithubUrl] = useState<string>('');
   const repositoryInputRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   const handleAnalysisComplete = (data: AnalysisData, githubUrl?: string) => {
-    setAnalysisData(data);
-    setError('');
-    if (githubUrl) {
-      setCurrentGithubUrl(githubUrl);
+    // Create a simplified version of the data for storage
+    const essentialData = {
+      repositoryName: data.repositoryName || '',
+      fileCounts: data.fileCounts || {},
+      totalCharacters: data.totalCharacters || 0,
+      functionAnalysis: {
+        totalFunctions: data.functionAnalysis?.totalFunctions || 0,
+        totalAnalyzedFiles: data.functionAnalysis?.totalAnalyzedFiles || 0,
+        avgFunctionsPerFile: data.functionAnalysis?.avgFunctionsPerFile || 0,
+        mostCommonLanguage: data.functionAnalysis?.mostCommonLanguage || '',
+        languages: data.functionAnalysis?.languages || {}
+      }
+    };
+
+    try {
+      // Store essential data in localStorage
+      localStorage.setItem('analysisData', JSON.stringify(essentialData));
+      // Store full data in sessionStorage (which has a larger quota)
+      sessionStorage.setItem('fullAnalysisData', JSON.stringify(data));
+      if (githubUrl) {
+        localStorage.setItem('githubUrl', githubUrl);
+      }
+      // Navigate to dashboard page
+      router.push('/dashboard');
+    } catch (error) {
+      console.error('Storage error:', error);
+      // If storage fails, try with even more minimal data
+      try {
+        const minimalData = {
+          repositoryName: data.repositoryName || '',
+          functionAnalysis: {
+            totalFunctions: data.functionAnalysis?.totalFunctions || 0,
+            languages: data.functionAnalysis?.languages || {}
+          }
+        };
+        localStorage.setItem('analysisData', JSON.stringify(minimalData));
+        sessionStorage.setItem('fullAnalysisData', JSON.stringify(data));
+        router.push('/dashboard');
+      } catch {
+        handleError('Unable to store analysis data. Please try a smaller repository.');
+      }
     }
   };
 
   const handleError = (errorMessage: string) => {
     setError(errorMessage);
-    setAnalysisData(null);
   };
 
   const handleGetStarted = () => {
@@ -29,20 +65,6 @@ export default function Home() {
       block: 'start'
     });
   };
-
-  if (analysisData) {
-    return (
-      <DashboardLayout 
-        data={analysisData}
-        onReset={() => {
-          setAnalysisData(null);
-          setError('');
-          setCurrentGithubUrl('');
-        }}
-        githubUrl={currentGithubUrl}
-      />
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-indigo-900">
@@ -77,21 +99,8 @@ export default function Home() {
       <footer className="bg-gray-900/80 backdrop-blur-lg border-t border-gray-700/50 py-12">
         <div className="max-w-6xl mx-auto px-4">
           <div className="text-center">
-            <div className="mb-8">
-              <h3 className="text-3xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent mb-4">
-                Acute Algo
-              </h3>
-              <p className="text-gray-300 max-w-2xl mx-auto">
-                Built by developers, for developers. Transform your algorithms from good to great.
-              </p>
-            </div>
-            
-              
-  
-            
-            
             <div className="text-gray-500 text-sm">
-              © 2025 ThinkArk, Inc. Empowering developers worldwide.
+              © 2025 ThinkArc, Inc. Empowering developers worldwide.
             </div>
           </div>
         </div>
