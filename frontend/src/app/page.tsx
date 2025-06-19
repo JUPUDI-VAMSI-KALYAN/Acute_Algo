@@ -1,13 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
-import { RepositoryForm, DashboardLayout } from '../components';
+import React, { useState, useRef } from 'react';
+import { DashboardLayout, HeroSection, FeatureGrid, RepositoryInput, UseCases } from '../components';
 import { AnalysisData } from '../lib/api';
 
 export default function Home() {
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
   const [error, setError] = useState<string>('');
   const [currentGithubUrl, setCurrentGithubUrl] = useState<string>('');
+  const repositoryInputRef = useRef<HTMLDivElement>(null);
 
   const handleAnalysisComplete = (data: AnalysisData, githubUrl?: string) => {
     setAnalysisData(data);
@@ -22,68 +23,78 @@ export default function Home() {
     setAnalysisData(null);
   };
 
-  const handleReset = () => {
-    setAnalysisData(null);
-    setError('');
-    setCurrentGithubUrl('');
+  const handleGetStarted = () => {
+    repositoryInputRef.current?.scrollIntoView({ 
+      behavior: 'smooth',
+      block: 'start'
+    });
   };
 
-  const handleRescan = (data: AnalysisData) => {
-    setAnalysisData(data);
-    setError('');
-  };
-
-  // If we have analysis data, show the full-screen dashboard
   if (analysisData) {
     return (
       <DashboardLayout 
-        data={analysisData} 
-        onReset={handleReset}
-        onRescan={handleRescan}
-        onError={handleError}
+        data={analysisData}
+        onReset={() => {
+          setAnalysisData(null);
+          setError('');
+          setCurrentGithubUrl('');
+        }}
         githubUrl={currentGithubUrl}
       />
     );
   }
 
-  // Otherwise, show the repository form with the original layout
   return (
-    <main className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="container mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">Acute Algo</h1>
-          <p className="text-lg text-gray-600">GitHub Repository Analysis Tool</p>
-        </div>
-
-        {/* Error Display */}
-        {error && (
-          <div className="max-w-2xl mx-auto mb-6">
-            <div className="bg-red-50 border border-red-200 rounded-md p-4">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <span className="text-red-400 text-xl">⚠️</span>
-                </div>
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-red-800">Analysis Error</h3>
-                  <p className="mt-1 text-sm text-red-700">{error}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Repository Form */}
-        <RepositoryForm 
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-indigo-900">
+      <HeroSection onGetStarted={handleGetStarted} />
+      
+      <FeatureGrid />
+      
+      <UseCases />
+      
+      <div ref={repositoryInputRef}>
+        <RepositoryInput 
           onAnalysisComplete={handleAnalysisComplete}
           onError={handleError}
         />
-
-        {/* Footer */}
-        <footer className="mt-12 text-center text-gray-500 text-sm">
-          <p>Built with Next.js, FastAPI, and Tailwind CSS</p>
-        </footer>
       </div>
-    </main>
+      
+      {error && (
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          <div className="bg-red-900/20 border border-red-400/50 rounded-2xl p-6 backdrop-blur-lg">
+            <div className="flex items-center">
+              <svg className="w-6 h-6 text-red-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-red-300 font-medium">{error}</p>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Footer */}
+      <footer className="bg-gray-900/80 backdrop-blur-lg border-t border-gray-700/50 py-12">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="text-center">
+            <div className="mb-8">
+              <h3 className="text-3xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent mb-4">
+                Acute Algo
+              </h3>
+              <p className="text-gray-300 max-w-2xl mx-auto">
+                Built by developers, for developers. Transform your algorithms from good to great.
+              </p>
+            </div>
+            
+              
+  
+            
+            
+            <div className="text-gray-500 text-sm">
+              © 2025 ThinkArk, Inc. Empowering developers worldwide.
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
   );
 }

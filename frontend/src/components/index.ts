@@ -1,4 +1,8 @@
-export { RepositoryForm } from './RepositoryForm';
 export { default as ChatAssistant } from './ChatAssistant';
 export { default as MermaidDiagram } from './MermaidDiagram';
-export * from './Dashboard'; 
+
+// Dashboard components
+export * from './Dashboard';
+
+// Landing page components
+export * from './Landing'; 
