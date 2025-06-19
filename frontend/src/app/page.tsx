@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { DashboardLayout, HeroSection, FeatureGrid, RepositoryInput, UseCases } from '../components';
+import { DashboardLayout, HeroSection, RepositoryInput, UseCases } from '../components';
 import { AnalysisData } from '../lib/api';
 
 export default function Home() {
@@ -48,7 +48,8 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-indigo-900">
       <HeroSection onGetStarted={handleGetStarted} />
       
-      <FeatureGrid />
+      {/* Features section hidden for now */}
+      {/* <FeatureGrid /> */}
       
       <UseCases />
       

@@ -33,21 +33,13 @@ const useCases: UseCase[] = [
     solution: "Deep analysis ensures your algorithms can handle the most demanding requirements",
     icon: "🛰️",
     gradient: "from-orange-500/20 to-red-500/20"
-  },
-  {
-    title: "Enterprise/Development",
-    scenario: "Managing large codebases",
-    challenge: "Complex systems with algorithms scattered across multiple teams and repositories",
-    solution: "Comprehensive analysis to maintain code quality and performance standards",
-    icon: "🏢",
-    gradient: "from-purple-500/20 to-indigo-500/20"
   }
 ];
 
 export const UseCases: React.FC = () => {
   return (
     <section className="py-20 px-4 bg-gradient-to-br from-gray-900 via-blue-900 to-indigo-900">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16 animate-fade-in-up">
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
             From <span className="bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">Ideas</span> to <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">Impact</span>
@@ -58,66 +50,27 @@ export const UseCases: React.FC = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {useCases.map((useCase, index) => {
-            // Define delay classes properly
-            const delayClass = index === 0 ? 'delay-200' : index === 1 ? 'delay-300' : index === 2 ? 'delay-500' : 'delay-700';
-            
-            return (
-              <div
-                key={index}
-                className={`
-                  relative group
-                  bg-gradient-to-br ${useCase.gradient}
-                  backdrop-blur-lg rounded-3xl p-8 
-                  border border-gray-700/50 hover:border-gray-600/70
-                  shadow-2xl hover:shadow-blue-500/10
-                  transform hover:scale-105
-                  transition-all duration-300 ease-out
-                  animate-fade-in-up
-                  ${delayClass}
-                `}
-              >
-              <div className="relative z-10">
-                <div className="flex items-start space-x-6 mb-6">
-                  <div className="text-6xl transition-transform duration-300 group-hover:scale-110">
-                    {useCase.icon}
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-blue-300 transition-colors duration-300">
-                      {useCase.title}
-                    </h3>
-                    <p className="text-blue-400 font-semibold text-lg mb-4">
-                      {useCase.scenario}
-                    </p>
-                  </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {useCases.map((useCase) => (
+            <div
+              key={useCase.title}
+              className={`p-6 rounded-xl bg-gradient-to-br ${useCase.gradient} backdrop-blur-sm border border-white/10 hover:scale-105 transition-transform duration-300`}
+            >
+              <div className="text-4xl mb-4">{useCase.icon}</div>
+              <h3 className="text-xl font-bold mb-2">{useCase.title}</h3>
+              <p className="text-sm text-gray-300 mb-4">{useCase.scenario}</p>
+              <div className="space-y-4">
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-400">Challenge:</h4>
+                  <p className="text-sm text-gray-300">{useCase.challenge}</p>
                 </div>
-                
-                <div className="space-y-6">
-                  <div>
-                    <div className="flex items-center mb-2">
-                      <div className="w-2 h-2 bg-red-400 rounded-full mr-3"></div>
-                      <h4 className="font-bold text-red-300 text-lg">Challenge</h4>
-                    </div>
-                    <p className="text-gray-300 pl-5 leading-relaxed">
-                      {useCase.challenge}
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <div className="flex items-center mb-2">
-                      <div className="w-2 h-2 bg-green-400 rounded-full mr-3"></div>
-                      <h4 className="font-bold text-green-300 text-lg">How We Help</h4>
-                    </div>
-                    <p className="text-gray-300 pl-5 leading-relaxed">
-                      {useCase.solution}
-                    </p>
-                  </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-400">Solution:</h4>
+                  <p className="text-sm text-gray-300">{useCase.solution}</p>
                 </div>
               </div>
             </div>
-          );
-          })}
+          ))}
         </div>
 
         <div className="mt-20 text-center animate-fade-in-up delay-1000">

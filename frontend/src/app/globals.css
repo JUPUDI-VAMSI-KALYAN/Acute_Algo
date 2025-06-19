@@ -7,7 +7,8 @@ html, body {
 }
 
 body {
-  @apply bg-gray-900 text-white font-sans;
+  @apply bg-black text-white font-sans min-h-screen;
+  background-attachment: fixed;
 }
 
 #__next {
@@ -253,4 +254,34 @@ input:focus, textarea:focus {
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
+}
+
+@keyframes fadeInWord {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeOutWord {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+}
+
+.word-transition-enter {
+  animation: fadeInWord 0.5s ease forwards;
+}
+
+.word-transition-exit {
+  animation: fadeOutWord 0.5s ease forwards;
 }
