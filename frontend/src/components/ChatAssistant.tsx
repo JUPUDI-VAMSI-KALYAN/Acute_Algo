@@ -1,4 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { chatWithAI, ChatMessage, ChatRequest } from '../lib/api';
 
 interface Message {
   id: string;
@@ -12,14 +15,25 @@ interface ChatAssistantProps {
     name: string;
     code?: string;
   } | null;
+  repositoryInfo?: {
+    name: string;
+    totalFunctions: number;
+    languages: string[];
+    structure?: string;
+  } | null;
 }
 
-const ChatAssistant: React.FC<ChatAssistantProps> = ({ functionInfo }) => {
+const ChatAssistant: React.FC<ChatAssistantProps> = ({ functionInfo, repositoryInfo }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Debug: Log messages state changes
+  useEffect(() => {
+    console.log('🔄 Messages state changed:', messages);
+  }, [messages]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -29,27 +43,50 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ functionInfo }) => {
     scrollToBottom();
   }, [messages]);
 
-  // Initialize with welcome message when function changes
+  // Initialize with welcome message when context changes
   useEffect(() => {
-    if (functionInfo && messages.length === 0) {
+    if (messages.length === 0) {
+      let welcomeMessage = '';
+      
+      if (functionInfo) {
+        welcomeMessage = `Hi! I'm here to help you understand the **${functionInfo.name}** function. You can ask me about its logic, optimization opportunities, potential issues, or anything else!`;
+      } else if (repositoryInfo) {
+        welcomeMessage = `Hi! I'm here to help you analyze the **${repositoryInfo.name}** repository. You can ask me about the codebase structure, functions, optimization opportunities, or general questions!`;
+      } else {
+        welcomeMessage = `Hi! I'm your AI coding assistant. I can help you with code analysis, optimization, debugging, and general programming questions!`;
+      }
+      
+      console.log('🏠 Setting welcome message:', welcomeMessage);
       setMessages([{
         id: Date.now().toString(),
-        text: `Hi! I'm here to help you understand the **${functionInfo.name}** function. You can ask me about its logic, optimization opportunities, potential issues, or anything else!`,
+        text: welcomeMessage,
         isUser: false,
         timestamp: new Date()
       }]);
     }
-  }, [functionInfo, messages.length]);
+  }, [functionInfo, repositoryInfo]);
 
-  const suggestedQuestions = [
+  const suggestedQuestions = functionInfo ? [
     "What does this function do?",
     "How can I optimize this code?",
     "Are there any potential bugs?",
     "Explain the algorithm step by step"
+  ] : repositoryInfo ? [
+    "What's the overall structure of this codebase?",
+    "Which functions should I focus on first?",
+    "Are there any code quality issues?",
+    "How can I improve this repository?"
+  ] : [
+    "Help me analyze some code",
+    "Explain a programming concept",
+    "Review my implementation",
+    "Suggest best practices"
   ];
 
   const handleSendMessage = async (text: string) => {
     if (!text.trim()) return;
+
+    console.log('🚀 Sending message:', text);
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -58,25 +95,111 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ functionInfo }) => {
       timestamp: new Date()
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    console.log('📝 Adding user message:', userMessage);
+    setMessages(prev => {
+      console.log('📝 Previous messages:', prev);
+      const newMessages = [...prev, userMessage];
+      console.log('📝 New messages after user message:', newMessages);
+      return newMessages;
+    });
     setInputText('');
     setIsLoading(true);
 
-    // Simulate AI response (replace with actual API call)
-    setTimeout(() => {
+    try {
+      // Prepare conversation history for AI - use messages before adding the current user message
+      const conversationHistory: ChatMessage[] = messages.map(msg => ({
+        role: msg.isUser ? 'user' : 'assistant',
+        content: msg.text,
+        timestamp: msg.timestamp.toISOString()
+      }));
+
+      // Determine context type and prepare request
+      let contextType: string = 'general';
+      let requestFunctionInfo = undefined;
+      let requestRepositoryInfo = undefined;
+
+      if (functionInfo) {
+        contextType = 'function';
+        requestFunctionInfo = {
+          name: functionInfo.name,
+          code: functionInfo.code || ''
+        };
+      } else if (repositoryInfo) {
+        contextType = 'repository';
+        requestRepositoryInfo = {
+          name: repositoryInfo.name,
+          totalFunctions: repositoryInfo.totalFunctions,
+          languages: repositoryInfo.languages,
+          structure: repositoryInfo.structure
+        };
+      }
+
+      const request: ChatRequest = {
+        message: text.trim(),
+        contextType,
+        conversationHistory,
+        functionInfo: requestFunctionInfo,
+        repositoryInfo: requestRepositoryInfo
+      };
+
+      // Debug: Log the request structure
+      console.log('Chat request:', JSON.stringify(request, null, 2));
+      
+      // Get AI response
+      console.log('🤖 Calling AI API...');
+      const aiResponseText = await chatWithAI(request);
+      console.log('🤖 AI Response received:', aiResponseText);
+
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
-        text: `I understand you're asking about "${text}". This is a placeholder response. In the actual implementation, this would connect to your AI service to provide detailed analysis about the ${functionInfo?.name || 'selected'} function.`,
+        text: aiResponseText,
         isUser: false,
         timestamp: new Date()
       };
-      setMessages(prev => [...prev, aiResponse]);
+
+      console.log('🤖 Adding AI response:', aiResponse);
+      setMessages(prev => {
+        console.log('🤖 Previous messages before AI response:', prev);
+        const newMessages = [...prev, aiResponse];
+        console.log('🤖 New messages after AI response:', newMessages);
+        return newMessages;
+      });
+    } catch (error) {
+      console.error('Chat error:', error);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: `Sorry, I encountered an error while processing your request. Please try again later. Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        isUser: false,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   const handleSuggestedQuestion = (question: string) => {
     handleSendMessage(question);
+  };
+
+  const handleClearChat = () => {
+    // Reset to welcome message
+    let welcomeMessage = '';
+    
+    if (functionInfo) {
+      welcomeMessage = `Hi! I'm here to help you understand the **${functionInfo.name}** function. You can ask me about its logic, optimization opportunities, potential issues, or anything else!`;
+    } else if (repositoryInfo) {
+      welcomeMessage = `Hi! I'm here to help you analyze the **${repositoryInfo.name}** repository. You can ask me about the codebase structure, functions, optimization opportunities, or general questions!`;
+    } else {
+      welcomeMessage = `Hi! I'm your AI coding assistant. I can help you with code analysis, optimization, debugging, and general programming questions!`;
+    }
+    
+    setMessages([{
+      id: Date.now().toString(),
+      text: welcomeMessage,
+      isUser: false,
+      timestamp: new Date()
+    }]);
   };
 
   const toggleChat = () => {
@@ -115,27 +238,49 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ functionInfo }) => {
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                 <h3 className="font-semibold">AI Assistant</h3>
               </div>
-              <button
-                onClick={toggleChat}
-                className="text-white/80 hover:text-white p-1 rounded hover:bg-white/10 transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={handleClearChat}
+                  title="Clear chat"
+                  className="text-white/80 hover:text-white p-1 rounded hover:bg-white/10 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+                <button
+                  onClick={toggleChat}
+                  title="Minimize chat"
+                  className="text-white/80 hover:text-white p-1 rounded hover:bg-white/10 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+              </div>
             </div>
-            {functionInfo && (
-              <p className="text-blue-100 text-sm mt-1 truncate">
-                Analyzing: {functionInfo.name}
-              </p>
-            )}
+                         {functionInfo ? (
+               <p className="text-blue-100 text-sm mt-1 truncate">
+                 Analyzing: {functionInfo.name}
+               </p>
+             ) : repositoryInfo ? (
+               <p className="text-blue-100 text-sm mt-1 truncate">
+                 Repository: {repositoryInfo.name}
+               </p>
+             ) : (
+               <p className="text-blue-100 text-sm mt-1">
+                 General Assistant
+               </p>
+             )}
           </div>
 
           {/* Messages Area */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {messages.map((message) => (
+            {messages.map((message, index) => {
+              console.log('💬 Rendering message:', message);
+              return (
               <div
-                key={message.id}
+                key={`${message.id}-${index}-${message.timestamp.getTime()}`}
                 className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}
               >
                 <div
@@ -145,7 +290,15 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ functionInfo }) => {
                       : 'bg-gray-100 text-gray-800 rounded-bl-md'
                   }`}
                 >
-                  <p className="text-sm whitespace-pre-wrap">{message.text}</p>
+                  {message.isUser ? (
+                    <p className="text-sm whitespace-pre-wrap">{message.text}</p>
+                  ) : (
+                    <div className="text-sm prose prose-sm max-w-none">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {message.text}
+                      </ReactMarkdown>
+                    </div>
+                  )}
                   <p className={`text-xs mt-1 ${
                     message.isUser ? 'text-blue-100' : 'text-gray-500'
                   }`}>
@@ -153,7 +306,8 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ functionInfo }) => {
                   </p>
                 </div>
               </div>
-            ))}
+              );
+            })}
 
             {isLoading && (
               <div className="flex justify-start">

@@ -107,6 +107,34 @@ export interface AIServiceStatus {
   configured: boolean;
 }
 
+export interface ChatMessage {
+  role: string; // 'user' or 'assistant'
+  content: string;
+  timestamp?: string;
+}
+
+export interface ChatRequest {
+  message: string;
+  contextType: string; // 'function', 'repository', 'general'
+  functionInfo?: {
+    name: string;
+    code: string;
+  };
+  repositoryInfo?: {
+    name: string;
+    totalFunctions: number;
+    languages: string[];
+    structure?: string;
+  };
+  conversationHistory: ChatMessage[];
+}
+
+export interface ChatResponse {
+  success: boolean;
+  response: string;
+  conversationId?: string;
+}
+
 // API functions
 export const analyzeRepository = async (githubUrl: string): Promise<AnalysisData> => {
   try {
@@ -186,6 +214,43 @@ export const isValidGitHubUrl = (url: string): boolean => {
 };
 
 // Utility function to copy text to clipboard
+export const chatWithAI = async (request: ChatRequest): Promise<string> => {
+  try {
+    console.log('Sending chat request:', request);
+    const response = await api.post<ChatResponse>('/api/ai/chat', request);
+
+    if (response.data.success) {
+      return response.data.response;
+    } else {
+      throw new Error('Chat request failed');
+    }
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.error('Chat API Error:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        request: request
+      });
+      
+      // More detailed error message for 422 validation errors
+      if (error.response?.status === 422) {
+        const validationErrors = error.response?.data?.detail;
+        if (Array.isArray(validationErrors)) {
+          const errorMessages = validationErrors.map((err: any) => 
+            `${err.loc?.join('.')} - ${err.msg}`
+          ).join(', ');
+          throw new Error(`Validation error: ${errorMessages}`);
+        }
+      }
+      
+      const errorMessage = error.response?.data?.detail || error.message;
+      throw new Error(errorMessage);
+    }
+    throw error;
+  }
+};
+
 export const copyToClipboard = async (text: string): Promise<boolean> => {
   try {
     await navigator.clipboard.writeText(text);

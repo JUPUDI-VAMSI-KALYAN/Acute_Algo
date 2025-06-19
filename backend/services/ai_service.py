@@ -473,6 +473,27 @@ Be specific about what could go wrong and provide actionable solutions."""
             logger.error(f"Comprehensive analysis failed: {e}")
             return None
 
+    async def generate_chat_response(self, prompt: str) -> Optional[str]:
+        """Generate a chat response for user queries"""
+        chat_prompt = f"""You are a helpful AI assistant specialized in code analysis and software development.
+
+{prompt}
+
+Please provide a helpful, accurate, and well-formatted response. Use markdown formatting where appropriate:
+- Use **bold** for emphasis
+- Use `code` for inline code
+- Use ```language for code blocks
+- Use bullet points or numbered lists for clarity
+- Keep responses concise but informative
+
+Focus on being practical and actionable in your advice."""
+
+        return await self._make_ai_request(
+            chat_prompt, 
+            temperature=0.7,
+            max_tokens=1500  # Adjust for chat responses
+        )
+
     async def close(self):
         """Close the HTTP client"""
         await self.client.aclose()

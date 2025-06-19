@@ -16,7 +16,10 @@ from models import (
     ErrorResponse,
     AIAnalysisRequest,
     AIAnalysisResponse,
-    AIAnalysisData
+    AIAnalysisData,
+    ChatRequest,
+    ChatResponse,
+    ChatMessage
 )
 from services.repository_service import RepositoryService
 from services.file_scanner import FileScanner
@@ -385,6 +388,96 @@ async def get_ai_service_status():
         "model": ai_service.default_model,
         "configured": bool(ai_service.api_key)
     }
+
+
+@app.post("/api/ai/chat", response_model=ChatResponse)
+async def chat_with_ai(request: ChatRequest):
+    """Chat with AI assistant about code, functions, or repository"""
+    
+    try:
+        logger.info(f"Starting chat conversation - Context: {request.context_type}")
+        
+        # Check if AI service is available
+        if not ai_service.is_available():
+            raise HTTPException(
+                status_code=503, 
+                detail="AI service is not available. Please check DO_MODEL_ACCESS_KEY configuration."
+            )
+        
+        # Build context based on the type
+        context_info = ""
+        
+        if request.context_type == "function" and request.function_info:
+            func_info = request.function_info
+            context_info = f"""
+Context: You are analyzing a specific function.
+
+Function Details:
+- Name: {func_info.get('name', 'Unknown')}
+- Code:
+```
+{func_info.get('code', 'No code provided')}
+```
+
+Please provide helpful analysis and answer the user's question about this function.
+"""
+        elif request.context_type == "repository" and request.repository_info:
+            repo_info = request.repository_info
+            context_info = f"""
+Context: You are analyzing a repository.
+
+Repository Details:
+- Name: {repo_info.get('name', 'Unknown')}
+- Total Functions: {repo_info.get('totalFunctions', 'Unknown')}
+- Languages: {repo_info.get('languages', 'Unknown')}
+- File Structure: {repo_info.get('structure', 'Not provided')}
+
+Please provide helpful analysis and answer the user's question about this repository.
+"""
+        else:
+            context_info = """
+Context: General code assistance.
+
+You are a helpful AI assistant specialized in code analysis and software development.
+Please provide helpful and accurate responses to the user's questions.
+"""
+        
+        # Build conversation history
+        conversation_context = ""
+        if request.conversation_history:
+            conversation_context = "\n\nPrevious conversation:\n"
+            for msg in request.conversation_history[-5:]:  # Last 5 messages for context
+                conversation_context += f"{msg.role.capitalize()}: {msg.content}\n"
+        
+        # Create the full prompt
+        full_prompt = f"""{context_info}{conversation_context}
+
+Current question: {request.message}
+
+Please provide a helpful, accurate, and concise response. If discussing code, use proper formatting and explain concepts clearly."""
+        
+        # Get AI response
+        response = await ai_service.generate_chat_response(full_prompt)
+        
+        if not response:
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to generate AI response. Please try again."
+            )
+        
+        logger.info(f"Chat response generated successfully")
+        
+        return ChatResponse(
+            success=True,
+            response=response,
+            conversation_id=None  # Could implement conversation tracking later
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Chat failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Chat failed: {str(e)}")
 
 
 if __name__ == "__main__":

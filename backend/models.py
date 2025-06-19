@@ -120,4 +120,34 @@ class AIAnalysisResponse(BaseModel):
     success: bool = Field(default=True, alias="success")
     data: AIAnalysisData = Field(..., alias="data")
 
+    model_config = ConfigDict(populate_by_name=True)
+
+
+# Chat-related models
+class ChatMessage(BaseModel):
+    """Individual chat message"""
+    role: str = Field(..., description="Message role: 'user' or 'assistant'")
+    content: str = Field(..., description="Message content")
+    timestamp: Optional[str] = Field(None, description="Message timestamp")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class ChatRequest(BaseModel):
+    """Request model for chat functionality"""
+    message: str = Field(..., description="User message")
+    context_type: str = Field(..., alias="contextType", description="Context type: 'function', 'repository', 'general'")
+    function_info: Optional[dict] = Field(None, alias="functionInfo", description="Function context")
+    repository_info: Optional[dict] = Field(None, alias="repositoryInfo", description="Repository context")
+    conversation_history: List[ChatMessage] = Field(default=[], alias="conversationHistory")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class ChatResponse(BaseModel):
+    """Response model for chat"""
+    success: bool = Field(default=True, alias="success")
+    response: str = Field(..., description="AI response")
+    conversation_id: Optional[str] = Field(None, alias="conversationId")
+
     model_config = ConfigDict(populate_by_name=True) 

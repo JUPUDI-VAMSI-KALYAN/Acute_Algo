@@ -7,6 +7,7 @@ import { FunctionAnalysis } from './FunctionAnalysis';
 import { FileStructure } from './FileStructure';
 import { CodeViewer } from './CodeViewer';
 import ChatAssistant from '../ChatAssistant';
+import { ChatProvider, useChatContext } from '../../contexts/ChatContext';
 
 interface DashboardLayoutProps {
   data: AnalysisData;
@@ -18,7 +19,7 @@ interface DashboardLayoutProps {
 
 export type DashboardTab = 'overview' | 'functions' | 'structure' | 'code';
 
-export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
+const DashboardContent: React.FC<DashboardLayoutProps> = ({
   data,
   onReset,
   onRescan,
@@ -26,6 +27,15 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   githubUrl
 }) => {
   const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
+  const { selectedFunction, setSelectedFunction } = useChatContext();
+
+  // Clear selected function when switching to non-function tabs
+  const handleTabChange = (tab: DashboardTab) => {
+    setActiveTab(tab);
+    if (tab !== 'functions') {
+      setSelectedFunction(null);
+    }
+  };
 
   const renderContent = () => {
     switch (activeTab) {
@@ -42,10 +52,13 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
     }
   };
 
+  // Only show function info when on functions tab and a function is selected
+  const shouldShowFunctionInfo = activeTab === 'functions' && selectedFunction;
+
   return (
     <div className="h-screen bg-gray-50 flex overflow-hidden">
       {/* Sidebar */}
-      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
+      <Sidebar activeTab={activeTab} onTabChange={handleTabChange} />
       
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -64,10 +77,27 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         </main>
       </div>
 
-      {/* Chat Assistant - Always visible floating chat */}
+      {/* Chat Assistant - Context-aware based on current tab and selection */}
       <ChatAssistant 
-        functionInfo={null} // Will be enhanced later to track selected functions
+        functionInfo={shouldShowFunctionInfo ? {
+          name: selectedFunction.name,
+          code: selectedFunction.code
+        } : null}
+        repositoryInfo={{
+          name: data.repositoryName,
+          totalFunctions: data.functionAnalysis?.totalFunctions || 0,
+          languages: data.functionAnalysis?.languages ? Object.keys(data.functionAnalysis.languages) : [],
+          structure: data.directoryTree.substring(0, 1000) // Limit structure size to avoid large payloads
+        }}
       />
     </div>
+  );
+};
+
+export const DashboardLayout: React.FC<DashboardLayoutProps> = (props) => {
+  return (
+    <ChatProvider>
+      <DashboardContent {...props} />
+    </ChatProvider>
   );
 }; 

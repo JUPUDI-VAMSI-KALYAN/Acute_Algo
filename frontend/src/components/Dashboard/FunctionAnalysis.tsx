@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { AnalysisData, FunctionInfo, copyToClipboard, analyzeFunctionWithAI, AIAnalysisData, getAIServiceStatus } from '../../lib/api';
 import MermaidDiagram from '../MermaidDiagram';
+import { useChatContext } from '../../contexts/ChatContext';
 
 
 interface FunctionAnalysisProps {
@@ -361,9 +362,11 @@ export const FunctionAnalysis: React.FC<FunctionAnalysisProps> = ({ data }) => {
     filePath: string;
     functionCode: string;
   } | null>(null);
+  const { setSelectedFunction: setChatFunction } = useChatContext();
 
   const closeDetailView = () => {
     setSelectedFunction(null);
+    setChatFunction(null); // Clear chat context when closing function view
   };
 
   // Close detail view on ESC key
@@ -552,6 +555,13 @@ You can view all code in the Code tab.`;
     const functionCode = functionInfo.code || 
                         extractFunctionCode(filePath, functionInfo.startLine, functionInfo.endLine, functionInfo.name);
     setSelectedFunction({ functionInfo, filePath, functionCode });
+    
+    // Also update the chat context so the assistant knows about the selected function
+    setChatFunction({
+      name: functionInfo.name,
+      code: functionCode,
+      filePath: filePath
+    });
   };
 
   // Extract clean path (remove temp directory prefix)
