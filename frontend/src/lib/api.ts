@@ -34,6 +34,7 @@ export interface FunctionInfo {
   startLine: number;
   endLine: number;
   lineCount: number;
+  code?: string;
 }
 
 export interface FileAnalysis {

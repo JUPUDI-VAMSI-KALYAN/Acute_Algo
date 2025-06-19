@@ -27,6 +27,7 @@ class FunctionInfo(BaseModel):
     start_line: int = Field(..., alias="startLine")
     end_line: int = Field(..., alias="endLine")
     line_count: int = Field(..., alias="lineCount")
+    code: Optional[str] = Field(None, alias="code", description="Function source code")
 
     model_config = ConfigDict(populate_by_name=True)
 

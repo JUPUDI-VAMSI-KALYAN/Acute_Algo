@@ -50,7 +50,7 @@ class FileScanner:
         function_analysis = None
         if self.function_counter.is_available():
             print("Analyzing functions with Tree-sitter...")
-            function_analysis = self.function_counter.analyze_directory(repo_path)
+            function_analysis = self.function_counter.analyze_directory(repo_path, include_code=True)
             print(f"Function analysis completed: {function_analysis.total_functions} functions found")
         else:
             print("Tree-sitter not available, skipping function analysis")

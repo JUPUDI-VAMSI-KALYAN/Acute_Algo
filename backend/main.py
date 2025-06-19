@@ -60,6 +60,111 @@ async def health_check():
     return {"status": "healthy"}
 
 
+@app.get("/api/test-functions/{test_file}")
+async def test_function_detection(test_file: str):
+    """Test function detection on a specific file type"""
+    
+    try:
+        # Create test content for different languages
+        test_content = ""
+        language = ""
+        
+        if test_file == "python":
+            language = "python"
+            test_content = '''def greet(name):
+    """A simple greeting function"""
+    return f"Hello, {name}!"
+
+class Calculator:
+    def add(self, a, b):
+        return a + b
+    
+    def subtract(self, a, b):
+        return a - b
+
+async def fetch_data():
+    # Simulate async operation
+    await asyncio.sleep(1)
+    return {"data": "example"}
+
+lambda_func = lambda x: x * 2
+'''
+        elif test_file == "javascript":
+            language = "javascript"
+            test_content = '''function greet(name) {
+    return `Hello, ${name}!`;
+}
+
+const add = (a, b) => {
+    return a + b;
+}
+
+const subtract = (a, b) => a - b;
+
+class Calculator {
+    multiply(a, b) {
+        return a * b;
+    }
+    
+    divide(a, b) {
+        if (b === 0) throw new Error('Division by zero');
+        return a / b;
+    }
+}
+
+async function fetchData() {
+    const response = await fetch('/api/data');
+    return response.json();
+}
+
+const utils = {
+    format: function(value) {
+        return value.toString();
+    },
+    
+    parse(text) {
+        return JSON.parse(text);
+    }
+};
+'''
+        
+        if not test_content:
+            raise HTTPException(status_code=400, detail="Unsupported test file type")
+        
+        # Test function detection
+        analysis = file_scanner.function_counter.analyze_file(
+            f"test.{test_file}", 
+            content=test_content, 
+            include_code=True
+        )
+        
+        if not analysis:
+            return {"error": "Function analysis failed", "content": test_content}
+        
+        # Convert to response format
+        functions = []
+        for func in analysis.functions:
+            functions.append({
+                "name": func.name,
+                "type": func.type,
+                "startLine": func.start_line,
+                "endLine": func.end_line,
+                "lineCount": func.line_count,
+                "code": func.code
+            })
+        
+        return {
+            "language": language,
+            "totalFunctions": len(functions),
+            "functions": functions,
+            "breakdown": analysis.breakdown,
+            "testContent": test_content
+        }
+        
+    except Exception as e:
+        logger.error(f"Function test failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Test failed: {str(e)}")
+
 @app.post("/api/analyze-repo", response_model=AnalysisResponse)
 async def analyze_repository(request: AnalysisRequest):
     """Analyze a GitHub repository"""
@@ -99,7 +204,8 @@ async def analyze_repository(request: AnalysisRequest):
                         type=func.type,
                         start_line=func.start_line,
                         end_line=func.end_line,
-                        line_count=func.line_count
+                        line_count=func.line_count,
+                        code=func.code
                     ))
                 
                 files.append(FileAnalysis(
@@ -132,7 +238,8 @@ async def analyze_repository(request: AnalysisRequest):
                         type=func.type,
                         start_line=func.start_line,
                         end_line=func.end_line,
-                        line_count=func.line_count
+                        line_count=func.line_count,
+                        code=func.code
                     ))
                 
                 largest_files.append(FileAnalysis(

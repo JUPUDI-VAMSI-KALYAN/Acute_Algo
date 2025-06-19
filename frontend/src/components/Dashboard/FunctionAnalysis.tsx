@@ -13,6 +13,111 @@ interface DetailedFunctionViewProps {
   functionCode: string;
 }
 
+interface AIAssistantPanelProps {
+  functionInfo: FunctionInfo | null;
+}
+
+const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({ functionInfo }) => {
+  const [message, setMessage] = useState('');
+
+  const suggestedQuestions = [
+    "What does this function do?",
+    "How can I optimize this code?",
+    "Are there any potential bugs?",
+    "Explain the algorithm used here"
+  ];
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="h-[60vh] min-h-[450px] max-h-[800px] flex flex-col">
+        {/* Header */}
+        <div className="p-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+          <h4 className="font-semibold flex items-center">
+            <span className="mr-2">🤖</span>
+            AI Assistant
+          </h4>
+          <p className="text-blue-100 text-sm mt-1">
+            Ask questions about {functionInfo?.name || 'this function'}
+          </p>
+        </div>
+        
+        {/* Chat Area */}
+        <div className="flex-1 p-4 bg-gray-50 overflow-y-auto">
+          <div className="space-y-3">
+            {/* Welcome Message */}
+            <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-200">
+              <div className="flex items-start space-x-2">
+                <span className="text-lg">🤖</span>
+                <div className="flex-1">
+                  <p className="text-sm text-gray-700">
+                    Hi! I&apos;m here to help you understand this function. You can ask me about:
+                  </p>
+                  <ul className="mt-2 text-xs text-gray-600 space-y-1">
+                    <li>• What the function does</li>
+                    <li>• How to optimize it</li>
+                    <li>• Potential issues or bugs</li>
+                    <li>• Alternative implementations</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Suggested Questions */}
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                Suggested Questions
+              </p>
+              {suggestedQuestions.map((question, index) => (
+                <button
+                  key={index}
+                  onClick={() => setMessage(question)}
+                  className="w-full text-left p-2 text-sm bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition-colors"
+                >
+                  {question}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+        
+        {/* Input Area */}
+        <div className="p-4 border-t border-gray-200 bg-white">
+          <div className="flex space-x-2">
+            <input 
+              type="text"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Ask about this function..."
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  // TODO: Handle send message
+                  console.log('Send message:', message);
+                  setMessage('');
+                }
+              }}
+            />
+            <button 
+              onClick={() => {
+                // TODO: Handle send message
+                console.log('Send message:', message);
+                setMessage('');
+              }}
+              disabled={!message.trim()}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors"
+            >
+              Send
+            </button>
+          </div>
+          <p className="text-xs text-gray-500 mt-2">
+            AI chat functionality coming soon
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const DetailedFunctionView: React.FC<DetailedFunctionViewProps> = ({
   isOpen,
   onClose,
@@ -20,7 +125,7 @@ const DetailedFunctionView: React.FC<DetailedFunctionViewProps> = ({
   filePath,
   functionCode
 }) => {
-  const [activeTab, setActiveTab] = useState<'code' | 'pseudocode' | 'flowchart' | 'chat'>('code');
+  const [activeTab, setActiveTab] = useState<'code' | 'pseudocode' | 'flowchart'>('code');
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copying' | 'success' | 'error'>('idle');
 
   const handleCopyCode = async () => {
@@ -64,7 +169,7 @@ const DetailedFunctionView: React.FC<DetailedFunctionViewProps> = ({
   if (!isOpen || !functionInfo) return null;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full max-w-none">
       {/* Header */}
       <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
         <div className="flex items-center justify-between">
@@ -105,14 +210,13 @@ const DetailedFunctionView: React.FC<DetailedFunctionViewProps> = ({
           )}
         </div>
 
-        {/* Tabs */}
+        {/* Main content tabs */}
         <div className="mt-6">
-          <nav className="flex space-x-8">
+          <nav className="flex space-x-6 border-b border-gray-200">
             {[
               { id: 'code' as const, name: 'Code', icon: '💻' },
               { id: 'pseudocode' as const, name: 'Pseudocode', icon: '📝' },
-              { id: 'flowchart' as const, name: 'Flowchart', icon: '🔄' },
-              { id: 'chat' as const, name: 'AI Assistant', icon: '🤖' }
+              { id: 'flowchart' as const, name: 'Flowchart', icon: '🔄' }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -131,49 +235,47 @@ const DetailedFunctionView: React.FC<DetailedFunctionViewProps> = ({
         </div>
       </div>
 
-      {/* Content */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        {activeTab === 'code' && (
-          <div className="h-96">
-            <div className="h-full bg-gray-900 rounded-xl overflow-hidden">
-              <div className="h-full overflow-auto">
-                <pre className="text-green-400 text-sm font-mono p-6 whitespace-pre-wrap min-h-full">
-                  <code>{functionCode}</code>
-                </pre>
+      {/* Content Layout - Full width with responsive split */}
+      <div className="flex flex-col lg:flex-row space-y-6 lg:space-y-0 lg:space-x-6">
+        {/* Left Content Area - Takes 2/3 of screen on large screens */}
+        <div className="w-full lg:w-2/3 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          {activeTab === 'code' && (
+            <div className="h-[60vh] min-h-[450px] max-h-[800px]">
+              <div className="h-full bg-gray-900 rounded-xl overflow-hidden">
+                <div className="h-full overflow-auto">
+                  <pre className="text-green-400 text-sm font-mono p-6 whitespace-pre-wrap min-h-full">
+                    <code>{functionCode}</code>
+                  </pre>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {activeTab === 'pseudocode' && (
-          <div className="h-96 flex items-center justify-center bg-gray-50">
-            <div className="text-center">
-              <div className="text-6xl mb-4">📝</div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Pseudocode Coming Soon</h3>
-              <p className="text-gray-600">AI-generated pseudocode will appear here</p>
+          {activeTab === 'pseudocode' && (
+            <div className="h-[60vh] min-h-[450px] max-h-[800px] flex items-center justify-center bg-gray-50">
+              <div className="text-center">
+                <div className="text-6xl mb-4">📝</div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">Pseudocode Coming Soon</h3>
+                <p className="text-gray-600">AI-generated pseudocode will appear here</p>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {activeTab === 'flowchart' && (
-          <div className="h-96 flex items-center justify-center bg-gray-50">
-            <div className="text-center">
-              <div className="text-6xl mb-4">🔄</div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Flowchart Coming Soon</h3>
-              <p className="text-gray-600">Interactive flowchart visualization will appear here</p>
+          {activeTab === 'flowchart' && (
+            <div className="h-[60vh] min-h-[450px] max-h-[800px] flex items-center justify-center bg-gray-50">
+              <div className="text-center">
+                <div className="text-6xl mb-4">🔄</div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">Flowchart Coming Soon</h3>
+                <p className="text-gray-600">Interactive flowchart visualization will appear here</p>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
-        {activeTab === 'chat' && (
-          <div className="h-96 flex items-center justify-center bg-gray-50">
-            <div className="text-center">
-              <div className="text-6xl mb-4">🤖</div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">AI Assistant Coming Soon</h3>
-              <p className="text-gray-600">Chat with AI about this function will appear here</p>
-            </div>
-          </div>
-        )}
+        {/* Right AI Assistant Panel - Takes 1/3 of screen on large screens, full width on mobile */}
+        <div className="w-full lg:w-1/3">
+          <AIAssistantPanel functionInfo={functionInfo} />
+        </div>
       </div>
     </div>
   );
@@ -222,17 +324,16 @@ export const FunctionAnalysis: React.FC<FunctionAnalysisProps> = ({ data }) => {
     try {
       const lines = data.fileContents.split('\n');
       let inTargetFile = false;
-      let currentLine = 1;
+      let fileLineNumber = 0; // Track actual line numbers within the current file
       const functionLines: string[] = [];
       
-      // Extract filename from full path for matching - try multiple approaches
+      // Extract filename from full path for matching
       const getFileName = (path: string) => {
         const normalizedPath = path.replace(/\\/g, '/');
         return normalizedPath.split('/').pop() || path;
       };
       
       const targetFileName = getFileName(filePath);
-      const fullPath = filePath; // Also try matching with full path
       
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
@@ -240,10 +341,11 @@ export const FunctionAnalysis: React.FC<FunctionAnalysisProps> = ({ data }) => {
         // Check for file header pattern: FILE: filename
         if (line.match(/^FILE: .+$/)) {
           const headerFileName = line.replace(/^FILE: /, '').trim();
-          // Try matching both filename and full path
-          inTargetFile = headerFileName === targetFileName || headerFileName === fullPath || 
-                        headerFileName.endsWith(targetFileName) || targetFileName.endsWith(headerFileName);
-          currentLine = 1;
+          // Match by filename or if header contains the target filename
+          inTargetFile = headerFileName === targetFileName || 
+                        headerFileName.endsWith('/' + targetFileName) ||
+                        headerFileName.endsWith(targetFileName);
+          fileLineNumber = 0; // Reset line counter for new file
           continue;
         }
         
@@ -257,155 +359,51 @@ export const FunctionAnalysis: React.FC<FunctionAnalysisProps> = ({ data }) => {
         }
         
         if (inTargetFile) {
-          // We're in the target file, check if this line is within our function range
-          if (currentLine >= startLine && currentLine <= endLine) {
+          fileLineNumber++; // Increment for each line in the target file
+          
+          // Check if this line is within our function range (using 1-based line numbers)
+          if (fileLineNumber >= startLine && fileLineNumber <= endLine) {
             functionLines.push(line);
           }
           
-          // If we've collected all the function lines, break
-          if (currentLine > endLine) {
+          // If we've passed the end line, we're done
+          if (fileLineNumber > endLine) {
             break;
           }
-          
-          currentLine++;
         }
       }
       
       // If we found function lines, return them
       if (functionLines.length > 0) {
-        return functionLines.join('\n');
-      }
-      
-      // Fallback: try to extract by searching for the function name within the target file
-      if (functionName) {
-        // Reset and search for the function by name within the correct file
-        inTargetFile = false;
-        let fileContent = [];
+        // Clean up the function lines - remove excessive leading/trailing whitespace
+        let cleanedLines = functionLines;
         
-        for (let i = 0; i < lines.length; i++) {
-          const line = lines[i];
-          
-          if (line.match(/^FILE: .+$/)) {
-            const headerFileName = line.replace(/^FILE: /, '').trim();
-            // Try matching both filename and full path
-            inTargetFile = headerFileName === targetFileName || headerFileName === fullPath || 
-                          headerFileName.endsWith(targetFileName) || targetFileName.endsWith(headerFileName);
-            fileContent = [];
-            continue;
-          }
-          
-          if (line.match(/^=+$/)) {
-            if (inTargetFile && fileContent.length > 0) {
-              // We've reached the end of our target file, search for function
-              break;
-            }
-            continue;
-          }
-          
-          if (inTargetFile) {
-            fileContent.push(line);
-          }
+        // Remove leading empty lines
+        while (cleanedLines.length > 0 && cleanedLines[0].trim() === '') {
+          cleanedLines = cleanedLines.slice(1);
         }
         
-        // Now search for the function within the file content
-        if (fileContent.length > 0) {
-          let foundFunction = false;
-          let indentLevel = 0;
-          let baseIndent = 0;
-          const functionCode = [];
-          
-          for (let i = 0; i < fileContent.length; i++) {
-            const line = fileContent[i];
-            
-            // Look for function declaration
-            if (!foundFunction && line.includes(functionName) && 
-                (line.includes('function') || line.includes('=>') || line.includes('def ') || 
-                 line.includes('class ') || line.includes('const ') || line.includes('let ') || 
-                 line.includes('var ') || line.includes('export '))) {
-              foundFunction = true;
-              functionCode.push(line);
-              
-              // For Python functions, track indentation level
-              if (line.includes('def ')) {
-                const match = line.match(/^(\s*)/);
-                baseIndent = match ? match[1].length : 0;
-              }
-              
-              // For JS/TS functions with braces
-              if (line.includes('{')) {
-                indentLevel = 1;
-              }
-              
-              // Check for single line arrow functions
-              if (line.includes('=>') && !line.includes('{') && line.trim().endsWith(';')) {
-                break;
-              }
-            } else if (foundFunction) {
-              // For Python: check if we've reached a line with same or less indentation (end of function)
-              if (line.includes('def ') && line.trim().length > 0) {
-                const match = line.match(/^(\s*)/);
-                const currentIndent = match ? match[1].length : 0;
-                if (currentIndent <= baseIndent) {
-                  break; // End of function
-                }
-              }
-              
-              // For JS/TS: count braces
-              if (line.includes('{')) indentLevel++;
-              if (line.includes('}')) indentLevel--;
-              
-              functionCode.push(line);
-              
-              // End condition for brace-based languages
-              if (indentLevel === 0 && (line.includes('}') || line.includes(';'))) {
-                break;
-              }
-              
-              // End condition for Python: empty line followed by dedented code or end of file
-              if (line.includes('def ') && line.trim().length === 0 && i < fileContent.length - 1) {
-                const nextLine = fileContent[i + 1];
-                if (nextLine && nextLine.trim().length > 0) {
-                  const match = nextLine.match(/^(\s*)/);
-                  const nextIndent = match ? match[1].length : 0;
-                  if (nextIndent <= baseIndent) {
-                    break; // End of function
-                  }
-                }
-              }
-            }
-            
-            // Limit function extraction to reasonable size
-            if (functionCode.length > 200) {
-              functionCode.push('// ... function continues ...');
-              break;
-            }
-          }
-          
-          if (functionCode.length > 0) {
-            return functionCode.join('\n');
-          }
+        // Remove trailing empty lines
+        while (cleanedLines.length > 0 && cleanedLines[cleanedLines.length - 1].trim() === '') {
+          cleanedLines = cleanedLines.slice(0, -1);
         }
+        
+        return cleanedLines.join('\n');
       }
       
-      // Let's also try a simple debug output to see the file structure
-      const firstLines = lines.slice(0, 10).join('\n');
-      const fileHeaders = lines.filter(line => line.match(/^FILE: .+$/)).slice(0, 5);
+      // Fallback: if precise line extraction failed, try to find the function by name
+      if (functionName && functionName !== 'anonymous') {
+        return findFunctionByName(lines, filePath, functionName);
+      }
       
-      return `Function code not found. 
+      return `Function code not found.
 
-Debugging info:
-- Target file: ${filePath}
-- Target filename: ${targetFileName}
-- Line range: ${startLine}-${endLine}
-- Content length: ${data.fileContents.length} characters
-- Function name: ${functionName}
+Details:
+- File: ${targetFileName}
+- Lines: ${startLine}-${endLine}
+- Function: ${functionName || 'unknown'}
 
-File structure (first 10 lines):
-${firstLines}
-
-Found file headers:
-${fileHeaders.join('\n') || 'No file headers found'}
-
+The function may be in a different file or the line numbers may be incorrect.
 You can view all code in the Code tab.`;
       
     } catch (error) {
@@ -413,8 +411,72 @@ You can view all code in the Code tab.`;
     }
   };
 
+  // Helper function to find function by name as fallback
+  const findFunctionByName = (lines: string[], filePath: string, functionName: string): string => {
+    const targetFileName = filePath.split('/').pop() || filePath;
+    let inTargetFile = false;
+    const fileContent: string[] = [];
+    
+    // First, extract the content of the target file
+    for (const line of lines) {
+      if (line.match(/^FILE: .+$/)) {
+        const headerFileName = line.replace(/^FILE: /, '').trim();
+        inTargetFile = headerFileName === targetFileName || 
+                      headerFileName.endsWith('/' + targetFileName) ||
+                      headerFileName.endsWith(targetFileName);
+        if (!inTargetFile && fileContent.length > 0) {
+          break; // We found our file and moved past it
+        }
+        continue;
+      }
+      
+      if (line.match(/^=+$/)) {
+        if (inTargetFile) break; // End of our target file
+        continue;
+      }
+      
+      if (inTargetFile) {
+        fileContent.push(line);
+      }
+    }
+    
+    if (fileContent.length === 0) {
+      return `File content not found for ${targetFileName}`;
+    }
+    
+    // Search for the function in the file content
+    const functionPattern = new RegExp(`(def\\s+${functionName}|function\\s+${functionName}|${functionName}\\s*[=:]|class\\s+${functionName})`, 'i');
+    
+    for (let i = 0; i < fileContent.length; i++) {
+      const line = fileContent[i];
+      if (functionPattern.test(line)) {
+        // Found the function, extract it with some context
+        const extractedLines = [];
+        let j = Math.max(0, i - 1); // Start one line before for context
+        
+        // Extract the function with reasonable bounds
+        while (j < fileContent.length && j < i + 50) { // Limit to 50 lines max
+          extractedLines.push(fileContent[j]);
+          j++;
+          
+          // Stop at next function/class definition (simple heuristic)
+          if (j > i + 2 && fileContent[j] && 
+              /^(def |function |class |export |const .* = |let .* = )/.test(fileContent[j].trim())) {
+            break;
+          }
+        }
+        
+        return extractedLines.join('\n');
+      }
+    }
+    
+    return `Function "${functionName}" not found in ${targetFileName}`;
+  };
+
   const handleFunctionClick = (functionInfo: FunctionInfo, filePath: string) => {
-    const functionCode = extractFunctionCode(filePath, functionInfo.startLine, functionInfo.endLine, functionInfo.name);
+    // Use the code provided by the backend if available, otherwise extract it
+    const functionCode = functionInfo.code || 
+                        extractFunctionCode(filePath, functionInfo.startLine, functionInfo.endLine, functionInfo.name);
     setSelectedFunction({ functionInfo, filePath, functionCode });
   };
 
@@ -468,7 +530,7 @@ You can view all code in the Code tab.`;
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full max-w-none">
       {/* Statistics Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl p-6 border border-blue-200">
