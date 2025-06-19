@@ -6,6 +6,7 @@ import { OverviewDashboard } from './OverviewDashboard';
 import { FunctionAnalysis } from './FunctionAnalysis';
 import { FileStructure } from './FileStructure';
 import { CodeViewer } from './CodeViewer';
+import ChatAssistant from '../ChatAssistant';
 
 interface DashboardLayoutProps {
   data: AnalysisData;
@@ -62,6 +63,11 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           {renderContent()}
         </main>
       </div>
+
+      {/* Chat Assistant - Always visible floating chat */}
+      <ChatAssistant 
+        functionInfo={null} // Will be enhanced later to track selected functions
+      />
     </div>
   );
 }; 

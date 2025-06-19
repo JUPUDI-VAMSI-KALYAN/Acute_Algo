@@ -28,6 +28,15 @@ export interface FileCounts {
   total: number;
 }
 
+export interface AIAnalysisData {
+  pseudocode: string;
+  flowchart: string;
+  complexityAnalysis: string;
+  optimizationSuggestions: string[];
+  potentialIssues: string[];
+  analysisTimestamp?: string;
+}
+
 export interface FunctionInfo {
   name: string;
   type: string;
@@ -35,6 +44,7 @@ export interface FunctionInfo {
   endLine: number;
   lineCount: number;
   code?: string;
+  aiAnalysis?: AIAnalysisData;
 }
 
 export interface FileAnalysis {
@@ -79,6 +89,24 @@ export interface ErrorResponse {
   error: string;
 }
 
+export interface AIAnalysisRequest {
+  functionCode: string;
+  functionName: string;
+  language: string;
+  filePath?: string;
+}
+
+export interface AIAnalysisResponse {
+  success: boolean;
+  data: AIAnalysisData;
+}
+
+export interface AIServiceStatus {
+  available: boolean;
+  model: string;
+  configured: boolean;
+}
+
 // API functions
 export const analyzeRepository = async (githubUrl: string): Promise<AnalysisData> => {
   try {
@@ -97,6 +125,48 @@ export const analyzeRepository = async (githubUrl: string): Promise<AnalysisData
       throw new Error(errorMessage);
     }
     throw error;
+  }
+};
+
+export const analyzeFunctionWithAI = async (request: AIAnalysisRequest): Promise<AIAnalysisData> => {
+  try {
+    const response = await api.post<AIAnalysisResponse>('/api/ai/analyze-function', request);
+
+    if (response.data.success) {
+      return response.data.data;
+    } else {
+      throw new Error('AI analysis failed');
+    }
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const errorMessage = error.response?.data?.detail || error.message;
+      throw new Error(errorMessage);
+    }
+    throw error;
+  }
+};
+
+export const getAIServiceStatus = async (): Promise<AIServiceStatus> => {
+  try {
+    const response = await api.get<AIServiceStatus>('/api/ai/status');
+    return response.data;
+  } catch (error) {
+    console.error('Failed to get AI service status:', error);
+    return {
+      available: false,
+      model: 'unknown',
+      configured: false
+    };
+  }
+};
+
+export const getAvailableAIModels = async (): Promise<any[]> => {
+  try {
+    const response = await api.get('/api/ai/models');
+    return response.data.models || [];
+  } catch (error) {
+    console.error('Failed to get AI models:', error);
+    return [];
   }
 };
 

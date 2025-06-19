@@ -20,6 +20,18 @@ class FileCounts(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class AIAnalysisData(BaseModel):
+    """AI analysis results for a function"""
+    pseudocode: str = Field(..., alias="pseudocode")
+    flowchart: str = Field(..., alias="flowchart")
+    complexity_analysis: str = Field(..., alias="complexityAnalysis")
+    optimization_suggestions: List[str] = Field(default=[], alias="optimizationSuggestions")
+    potential_issues: List[str] = Field(default=[], alias="potentialIssues")
+    analysis_timestamp: Optional[str] = Field(None, alias="analysisTimestamp")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class FunctionInfo(BaseModel):
     """Information about a single function"""
     name: str = Field(..., alias="name")
@@ -28,6 +40,7 @@ class FunctionInfo(BaseModel):
     end_line: int = Field(..., alias="endLine")
     line_count: int = Field(..., alias="lineCount")
     code: Optional[str] = Field(None, alias="code", description="Function source code")
+    ai_analysis: Optional[AIAnalysisData] = Field(None, alias="aiAnalysis", description="AI-generated analysis")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -88,5 +101,23 @@ class ErrorResponse(BaseModel):
     """Response model for errors"""
     success: bool = Field(default=False, alias="success")
     error: str = Field(..., alias="error")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class AIAnalysisRequest(BaseModel):
+    """Request model for AI function analysis"""
+    function_code: str = Field(..., alias="functionCode")
+    function_name: str = Field(..., alias="functionName")
+    language: str = Field(..., alias="language")
+    file_path: Optional[str] = Field(None, alias="filePath")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class AIAnalysisResponse(BaseModel):
+    """Response model for AI analysis"""
+    success: bool = Field(default=True, alias="success")
+    data: AIAnalysisData = Field(..., alias="data")
 
     model_config = ConfigDict(populate_by_name=True) 

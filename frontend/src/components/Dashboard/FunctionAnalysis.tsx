@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
-import { AnalysisData, FunctionInfo, copyToClipboard } from '../../lib/api';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { AnalysisData, FunctionInfo, copyToClipboard, analyzeFunctionWithAI, AIAnalysisData, getAIServiceStatus } from '../../lib/api';
+import MermaidDiagram from '../MermaidDiagram';
+
 
 interface FunctionAnalysisProps {
   data: AnalysisData;
@@ -13,110 +17,7 @@ interface DetailedFunctionViewProps {
   functionCode: string;
 }
 
-interface AIAssistantPanelProps {
-  functionInfo: FunctionInfo | null;
-}
 
-const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({ functionInfo }) => {
-  const [message, setMessage] = useState('');
-
-  const suggestedQuestions = [
-    "What does this function do?",
-    "How can I optimize this code?",
-    "Are there any potential bugs?",
-    "Explain the algorithm used here"
-  ];
-
-  return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-      <div className="h-[60vh] min-h-[450px] max-h-[800px] flex flex-col">
-        {/* Header */}
-        <div className="p-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-          <h4 className="font-semibold flex items-center">
-            <span className="mr-2">🤖</span>
-            AI Assistant
-          </h4>
-          <p className="text-blue-100 text-sm mt-1">
-            Ask questions about {functionInfo?.name || 'this function'}
-          </p>
-        </div>
-        
-        {/* Chat Area */}
-        <div className="flex-1 p-4 bg-gray-50 overflow-y-auto">
-          <div className="space-y-3">
-            {/* Welcome Message */}
-            <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-200">
-              <div className="flex items-start space-x-2">
-                <span className="text-lg">🤖</span>
-                <div className="flex-1">
-                  <p className="text-sm text-gray-700">
-                    Hi! I&apos;m here to help you understand this function. You can ask me about:
-                  </p>
-                  <ul className="mt-2 text-xs text-gray-600 space-y-1">
-                    <li>• What the function does</li>
-                    <li>• How to optimize it</li>
-                    <li>• Potential issues or bugs</li>
-                    <li>• Alternative implementations</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            {/* Suggested Questions */}
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                Suggested Questions
-              </p>
-              {suggestedQuestions.map((question, index) => (
-                <button
-                  key={index}
-                  onClick={() => setMessage(question)}
-                  className="w-full text-left p-2 text-sm bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition-colors"
-                >
-                  {question}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-        
-        {/* Input Area */}
-        <div className="p-4 border-t border-gray-200 bg-white">
-          <div className="flex space-x-2">
-            <input 
-              type="text"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Ask about this function..."
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  // TODO: Handle send message
-                  console.log('Send message:', message);
-                  setMessage('');
-                }
-              }}
-            />
-            <button 
-              onClick={() => {
-                // TODO: Handle send message
-                console.log('Send message:', message);
-                setMessage('');
-              }}
-              disabled={!message.trim()}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors"
-            >
-              Send
-            </button>
-          </div>
-          <p className="text-xs text-gray-500 mt-2">
-            AI chat functionality coming soon
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 const DetailedFunctionView: React.FC<DetailedFunctionViewProps> = ({
   isOpen,
@@ -125,8 +26,25 @@ const DetailedFunctionView: React.FC<DetailedFunctionViewProps> = ({
   filePath,
   functionCode
 }) => {
-  const [activeTab, setActiveTab] = useState<'code' | 'pseudocode' | 'flowchart'>('code');
+  const [activeTab, setActiveTab] = useState<'code' | 'pseudocode' | 'flowchart' | 'analysis'>('code');
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copying' | 'success' | 'error'>('idle');
+  const [aiAnalysis, setAiAnalysis] = useState<AIAnalysisData | null>(functionInfo?.aiAnalysis || null);
+  const [isLoadingAI, setIsLoadingAI] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiServiceAvailable, setAiServiceAvailable] = useState(false);
+
+  // Check AI service status on component mount
+  React.useEffect(() => {
+    const checkAIStatus = async () => {
+      try {
+        const status = await getAIServiceStatus();
+        setAiServiceAvailable(status.available);
+      } catch {
+        setAiServiceAvailable(false);
+      }
+    };
+    checkAIStatus();
+  }, []);
 
   const handleCopyCode = async () => {
     setCopyStatus('copying');
@@ -142,6 +60,36 @@ const DetailedFunctionView: React.FC<DetailedFunctionViewProps> = ({
     } catch {
       setCopyStatus('error');
       setTimeout(() => setCopyStatus('idle'), 3000);
+    }
+  };
+
+  const handleAIAnalysis = async () => {
+    if (!functionInfo || !functionCode || isLoadingAI) return;
+
+    setIsLoadingAI(true);
+    setAiError(null);
+
+    try {
+      // Determine language from file path
+      const fileExtension = filePath.split('.').pop()?.toLowerCase();
+      let language = 'unknown';
+      if (fileExtension === 'py') language = 'python';
+      else if (['js', 'jsx'].includes(fileExtension || '')) language = 'javascript';
+      else if (['ts', 'tsx'].includes(fileExtension || '')) language = 'typescript';
+
+      const analysis = await analyzeFunctionWithAI({
+        functionCode,
+        functionName: functionInfo.name,
+        language,
+        filePath
+      });
+
+      setAiAnalysis(analysis);
+      setActiveTab('pseudocode'); // Switch to pseudocode tab after analysis
+    } catch (error) {
+      setAiError(error instanceof Error ? error.message : 'AI analysis failed');
+    } finally {
+      setIsLoadingAI(false);
     }
   };
 
@@ -191,43 +139,93 @@ const DetailedFunctionView: React.FC<DetailedFunctionViewProps> = ({
               </div>
             </div>
           </div>
-          {activeTab === 'code' && (
-            <button
-              onClick={handleCopyCode}
-              disabled={copyStatus === 'copying'}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                copyStatus === 'copying' 
-                  ? 'bg-gray-100 text-gray-400' 
-                  : copyStatus === 'success' 
-                  ? 'bg-green-600 text-white' 
-                  : copyStatus === 'error' 
-                  ? 'bg-red-600 text-white' 
-                  : 'bg-blue-600 hover:bg-blue-700 text-white'
-              }`}
-            >
-              {getStatusText(copyStatus)}
-            </button>
-          )}
+          <div className="flex items-center space-x-2">
+            {activeTab === 'code' && (
+              <button
+                onClick={handleCopyCode}
+                disabled={copyStatus === 'copying'}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  copyStatus === 'copying' 
+                    ? 'bg-gray-100 text-gray-400' 
+                    : copyStatus === 'success' 
+                    ? 'bg-green-600 text-white' 
+                    : copyStatus === 'error' 
+                    ? 'bg-red-600 text-white' 
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}
+              >
+                {getStatusText(copyStatus)}
+              </button>
+            )}
+            
+            {aiServiceAvailable && !aiAnalysis && (
+              <button
+                onClick={handleAIAnalysis}
+                disabled={isLoadingAI}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  isLoadingAI
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-purple-600 text-white hover:bg-purple-700'
+                }`}
+              >
+                {isLoadingAI ? (
+                  <span className="flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Analyzing...
+                  </span>
+                ) : (
+                  <span className="flex items-center">
+                    🤖 AI Analysis
+                  </span>
+                )}
+              </button>
+            )}
+
+            {aiAnalysis && (
+              <div className="flex items-center px-3 py-1 bg-green-50 rounded-full text-sm text-green-700">
+                <span className="mr-1">✅</span>
+                Analysis Complete
+              </div>
+            )}
+
+            {aiError && (
+              <div className="flex items-center text-sm text-red-600">
+                <span className="mr-1">❌</span>
+                {aiError}
+              </div>
+            )}
+
+            {!aiServiceAvailable && (
+              <div className="flex items-center text-sm text-yellow-600">
+                <span className="mr-1">⚠️</span>
+                AI Service Not Available
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Main content tabs */}
         <div className="mt-6">
-          <nav className="flex space-x-6 border-b border-gray-200">
+          <nav className="flex space-x-8 border-b border-gray-200">
             {[
               { id: 'code' as const, name: 'Code', icon: '💻' },
-              { id: 'pseudocode' as const, name: 'Pseudocode', icon: '📝' },
-              { id: 'flowchart' as const, name: 'Flowchart', icon: '🔄' }
+              { id: 'pseudocode' as const, name: 'Pseudocode', icon: '📝', disabled: !aiAnalysis },
+              { id: 'flowchart' as const, name: 'Flowchart', icon: '🔄', disabled: !aiAnalysis },
+              { id: 'analysis' as const, name: 'Analysis', icon: '🤖', disabled: !aiAnalysis }
             ].map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center space-x-2 py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === tab.id
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                onClick={() => !tab.disabled && setActiveTab(tab.id)}
+                disabled={tab.disabled}
+                className={`flex items-center space-x-2 py-3 px-2 border-b-2 font-medium text-sm transition-all duration-200 ${
+                  tab.disabled
+                    ? 'border-transparent text-gray-300 cursor-not-allowed'
+                    : activeTab === tab.id
+                    ? 'border-blue-500 text-blue-600 bg-blue-50/50'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50/50'
                 }`}
               >
-                <span>{tab.icon}</span>
+                <span className="text-base">{tab.icon}</span>
                 <span>{tab.name}</span>
               </button>
             ))}
@@ -235,15 +233,15 @@ const DetailedFunctionView: React.FC<DetailedFunctionViewProps> = ({
         </div>
       </div>
 
-      {/* Content Layout - Full width with responsive split */}
-      <div className="flex flex-col lg:flex-row space-y-6 lg:space-y-0 lg:space-x-6">
-        {/* Left Content Area - Takes 2/3 of screen on large screens */}
-        <div className="w-full lg:w-2/3 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      {/* Content Layout - Full width optimized */}
+      <div className="w-full">
+        {/* Main Content Area - Full width */}
+        <div className="w-full bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           {activeTab === 'code' && (
-            <div className="h-[60vh] min-h-[450px] max-h-[800px]">
+            <div className="h-[70vh] min-h-[500px] max-h-[900px]">
               <div className="h-full bg-gray-900 rounded-xl overflow-hidden">
                 <div className="h-full overflow-auto">
-                  <pre className="text-green-400 text-sm font-mono p-6 whitespace-pre-wrap min-h-full">
+                  <pre className="text-green-400 text-sm font-mono p-4 whitespace-pre-wrap min-h-full">
                     <code>{functionCode}</code>
                   </pre>
                 </div>
@@ -252,30 +250,106 @@ const DetailedFunctionView: React.FC<DetailedFunctionViewProps> = ({
           )}
 
           {activeTab === 'pseudocode' && (
-            <div className="h-[60vh] min-h-[450px] max-h-[800px] flex items-center justify-center bg-gray-50">
-              <div className="text-center">
-                <div className="text-6xl mb-4">📝</div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">Pseudocode Coming Soon</h3>
-                <p className="text-gray-600">AI-generated pseudocode will appear here</p>
-              </div>
+            <div className="h-[70vh] min-h-[500px] max-h-[900px] p-4">
+              {aiAnalysis ? (
+                <div className="h-full overflow-auto">
+                  <div className="bg-white p-4 rounded border border-gray-200 prose prose-sm max-w-none h-full">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {aiAnalysis.pseudocode}
+                    </ReactMarkdown>
+                  </div>
+                </div>
+              ) : (
+                <div className="h-full flex items-center justify-center bg-gray-50 rounded-lg">
+                  <div className="text-center">
+                    <div className="text-6xl mb-4">📝</div>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">AI Analysis Required</h3>
+                    <p className="text-gray-600">Run AI analysis to generate pseudocode</p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
           {activeTab === 'flowchart' && (
-            <div className="h-[60vh] min-h-[450px] max-h-[800px] flex items-center justify-center bg-gray-50">
-              <div className="text-center">
-                <div className="text-6xl mb-4">🔄</div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">Flowchart Coming Soon</h3>
-                <p className="text-gray-600">Interactive flowchart visualization will appear here</p>
-              </div>
+            <div className="h-[70vh] min-h-[500px] max-h-[900px] p-4">
+              {aiAnalysis ? (
+                <div className="h-full overflow-auto">
+                  <div className="bg-white rounded border border-gray-200 p-4 h-full flex items-center justify-center">
+                    <MermaidDiagram 
+                      chart={aiAnalysis.flowchart} 
+                      className="w-full max-w-4xl"
+                      id={`flowchart-${functionInfo?.name}`}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="h-full flex items-center justify-center bg-gray-50 rounded-lg">
+                  <div className="text-center">
+                    <div className="text-6xl mb-4">🔄</div>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">AI Analysis Required</h3>
+                    <p className="text-gray-600">Run AI analysis to generate flowchart</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'analysis' && (
+            <div className="h-[70vh] min-h-[500px] max-h-[900px] p-4">
+              {aiAnalysis ? (
+                <div className="h-full overflow-auto">
+                  <div className="space-y-4">
+                    {/* Complexity Analysis */}
+                    <div className="bg-white p-4 rounded border border-gray-200 prose prose-sm max-w-none">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {aiAnalysis.complexityAnalysis}
+                      </ReactMarkdown>
+                    </div>
+
+                    {/* Optimization Suggestions */}
+                    {aiAnalysis.optimizationSuggestions.length > 0 && (
+                      <div className="bg-white p-4 rounded border border-gray-200 prose prose-sm max-w-none">
+                        {aiAnalysis.optimizationSuggestions.map((suggestion, index) => (
+                          <ReactMarkdown key={index} remarkPlugins={[remarkGfm]}>
+                            {suggestion}
+                          </ReactMarkdown>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Potential Issues */}
+                    {aiAnalysis.potentialIssues.length > 0 && (
+                      <div className="bg-white p-4 rounded border border-gray-200 prose prose-sm max-w-none">
+                        {aiAnalysis.potentialIssues.map((issue, index) => (
+                          <ReactMarkdown key={index} remarkPlugins={[remarkGfm]}>
+                            {issue}
+                          </ReactMarkdown>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Analysis Timestamp */}
+                    {aiAnalysis.analysisTimestamp && (
+                      <div className="text-xs text-gray-500 text-center mt-4">
+                        Analysis completed: {new Date(aiAnalysis.analysisTimestamp).toLocaleString()}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="h-full flex items-center justify-center bg-gray-50 rounded-lg">
+                  <div className="text-center">
+                    <div className="text-6xl mb-4">🤖</div>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">AI Analysis Required</h3>
+                    <p className="text-gray-600">Run AI analysis to see detailed insights</p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
 
-        {/* Right AI Assistant Panel - Takes 1/3 of screen on large screens, full width on mobile */}
-        <div className="w-full lg:w-1/3">
-          <AIAssistantPanel functionInfo={functionInfo} />
-        </div>
       </div>
     </div>
   );
@@ -644,9 +718,11 @@ You can view all code in the Code tab.`;
                 ))}
               </div>
             </div>
-          ))}
+          )          )}
         </div>
       </div>
+
+
     </div>
   );
 }; 

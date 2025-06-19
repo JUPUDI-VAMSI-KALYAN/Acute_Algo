@@ -13,10 +13,14 @@ from models import (
     LanguageStats,
     FileAnalysis,
     FunctionInfo,
-    ErrorResponse
+    ErrorResponse,
+    AIAnalysisRequest,
+    AIAnalysisResponse,
+    AIAnalysisData
 )
 from services.repository_service import RepositoryService
 from services.file_scanner import FileScanner
+from services.ai_service import ai_service
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -289,6 +293,98 @@ async def analyze_repository(request: AnalysisRequest):
             logger.info("Cleanup completed")
         except Exception as e:
             logger.warning(f"Cleanup failed: {e}")
+
+
+@app.post("/api/ai/analyze-function", response_model=AIAnalysisResponse)
+async def analyze_function_with_ai(request: AIAnalysisRequest):
+    """Analyze a function using AI to generate pseudocode and flowchart"""
+    
+    try:
+        logger.info(f"Starting AI analysis for function: {request.function_name}")
+        
+        # Check if AI service is available
+        if not ai_service.is_available():
+            raise HTTPException(
+                status_code=503, 
+                detail="AI service is not available. Please check DO_MODEL_ACCESS_KEY configuration."
+            )
+        
+        # Perform comprehensive AI analysis
+        analysis_result = await ai_service.analyze_function_comprehensive(
+            function_code=request.function_code,
+            function_name=request.function_name,
+            language=request.language
+        )
+        
+        if not analysis_result:
+            raise HTTPException(
+                status_code=500,
+                detail="AI analysis failed. Please try again later."
+            )
+        
+        # Add timestamp
+        from datetime import datetime
+        timestamp = datetime.now().isoformat()
+        
+        # Create response data
+        ai_data = AIAnalysisData(
+            pseudocode=analysis_result.pseudocode,
+            flowchart=analysis_result.flowchart,
+            complexity_analysis=analysis_result.complexity_analysis,
+            optimization_suggestions=analysis_result.optimization_suggestions,
+            potential_issues=analysis_result.potential_issues,
+            analysis_timestamp=timestamp
+        )
+        
+        logger.info(f"AI analysis completed for function: {request.function_name}")
+        
+        return AIAnalysisResponse(data=ai_data)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"AI analysis failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"AI analysis failed: {str(e)}")
+
+
+@app.get("/api/ai/models")
+async def get_available_ai_models():
+    """Get list of available AI models"""
+    
+    try:
+        if not ai_service.is_available():
+            return {
+                "success": False,
+                "message": "AI service not configured",
+                "models": []
+            }
+        
+        models = await ai_service.get_available_models()
+        
+        return {
+            "success": True,
+            "models": models,
+            "current_model": ai_service.default_model
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to get AI models: {str(e)}")
+        return {
+            "success": False,
+            "message": f"Failed to get models: {str(e)}",
+            "models": []
+        }
+
+
+@app.get("/api/ai/status")
+async def get_ai_service_status():
+    """Check AI service status"""
+    
+    return {
+        "available": ai_service.is_available(),
+        "model": ai_service.default_model,
+        "configured": bool(ai_service.api_key)
+    }
 
 
 if __name__ == "__main__":
