@@ -1,11 +1,12 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://dolphin-app-tyzp9.ondigitalocean.app';
 
 // Create axios instance with default config
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 60000, // 60 seconds for large repositories
+  withCredentials: true, // For https-only cookies
   headers: {
     'Content-Type': 'application/json',
   },
