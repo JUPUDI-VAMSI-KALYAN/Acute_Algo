@@ -5,7 +5,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://dolphin-app-tyz
 // Create axios instance with default config
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 60000, // 60 seconds for large repositories
+  timeout: 180000, // 3 minutes for large repositories like React
   withCredentials: true, // For https-only cookies
   headers: {
     'Content-Type': 'application/json',
@@ -152,8 +152,11 @@ interface ValidationError {
 // API functions
 export const analyzeRepository = async (githubUrl: string): Promise<AnalysisData> => {
   try {
+    // Use longer timeout for repository analysis - large repos like React can take 2-3 minutes
     const response = await api.post<AnalysisResponse>('/api/analyze-repo', {
       githubUrl,
+    }, {
+      timeout: 300000, // 5 minutes for very large repositories
     });
 
     if (response.data.success) {
