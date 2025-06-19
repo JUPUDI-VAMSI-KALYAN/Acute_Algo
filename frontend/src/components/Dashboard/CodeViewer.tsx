@@ -182,50 +182,6 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({ data }) => {
           </div>
         )}
       </div>
-
-      {/* Additional Actions */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Actions</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button
-            onClick={handleCopyAll}
-            disabled={copyStatus === 'copying'}
-            className={`p-4 rounded-lg border transition-colors text-left ${
-              copyStatus === 'copying' 
-                ? 'bg-gray-50 border-gray-200 text-gray-400' 
-                : 'bg-blue-50 border-blue-200 hover:bg-blue-100'
-            }`}
-          >
-            <div className="flex items-center mb-2">
-              <span className="text-lg mr-2">📋</span>
-              <span className="font-medium text-blue-900">Copy All Code</span>
-            </div>
-            <p className="text-sm text-blue-700">
-              Copy all source code to clipboard
-            </p>
-          </button>
-          
-          <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-            <div className="flex items-center mb-2">
-              <span className="text-lg mr-2">📊</span>
-              <span className="font-medium text-gray-900">View Analysis</span>
-            </div>
-            <p className="text-sm text-gray-700">
-              See detailed function analysis
-            </p>
-          </div>
-          
-          <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-            <div className="flex items-center mb-2">
-              <span className="text-lg mr-2">🗂️</span>
-              <span className="font-medium text-gray-900">File Structure</span>
-            </div>
-            <p className="text-sm text-gray-700">
-              Browse directory organization
-            </p>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }; 
