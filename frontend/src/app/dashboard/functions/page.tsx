@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { getRepositoryFunctions, AlgorithmFunction } from '@/lib/api';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Table,
   TableBody,
@@ -23,6 +23,7 @@ type FilterType = 'all' | 'algorithm' | 'regular';
 type LanguageFilter = 'all' | string;
 
 export default function FunctionsPage() {
+  const router = useRouter();
   const [functions, setFunctions] = useState<AlgorithmFunction[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -161,7 +162,7 @@ export default function FunctionsPage() {
         </div>
         <div className="flex flex-1 items-center justify-center">
           <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          <span className="ml-3 text-gray-500">Loading functions...</span>
+          <span className="ml-3 text-muted-foreground">Loading functions...</span>
         </div>
       </main>
     );
@@ -315,7 +316,14 @@ export default function FunctionsPage() {
               </TableHeader>
               <TableBody>
                 {filteredFunctions.map((func) => (
-                  <TableRow key={func.id}>
+                  <TableRow 
+                    key={func.id} 
+                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => {
+                      console.log('Navigating to function:', func.id);
+                      router.push(`/dashboard/functions/${func.id}`);
+                    }}
+                  >
                     <TableCell className="font-medium">{func.name}</TableCell>
                     <TableCell className="text-muted-foreground max-w-[300px] truncate">
                       {getCleanPath(func.file_analyses.file_path)}

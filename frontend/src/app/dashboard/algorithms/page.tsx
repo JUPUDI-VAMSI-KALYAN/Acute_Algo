@@ -173,7 +173,7 @@ export default function AlgorithmsPage() {
         </div>
         <div className="flex flex-1 items-center justify-center">
           <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          <span className="ml-3 text-gray-500">Loading algorithms...</span>
+          <span className="ml-3 text-muted-foreground">Loading algorithms...</span>
         </div>
       </main>
     );

@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://dolphin-app-tyzp9.ondigitalocean.app';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 // Create axios instance with default config
 const api = axios.create({
@@ -453,13 +453,14 @@ export const saveAIAnalysis = async (data: {
   }
 };
 
-export const getFunctionWithAIAnalysis = async (functionId: string): Promise<{
-  function: unknown;
-  aiAnalysis?: DatabaseAIAnalysis;
-}> => {
+export const getFunctionWithAIAnalysis = async (functionId: string): Promise<unknown> => {
   try {
     const response = await api.get(`/api/database/function/${functionId}/ai-analysis`);
-    return response.data;
+    if (response.data.success) {
+      return response.data.data;
+    } else {
+      throw new Error('Failed to get function data');
+    }
   } catch (error) {
     if (axios.isAxiosError(error)) {
       const errorMessage = error.response?.data?.detail || error.message;

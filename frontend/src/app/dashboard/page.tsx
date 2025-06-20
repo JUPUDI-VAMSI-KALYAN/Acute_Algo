@@ -38,7 +38,7 @@ export default function DashboardPage() {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-        <span className="ml-3 text-gray-500">Loading...</span>
+        <span className="ml-3 text-muted-foreground">Loading...</span>
       </div>
     );
   }
@@ -53,7 +53,7 @@ export default function DashboardPage() {
       ) : (
          <div className="flex items-center justify-center h-full">
           <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          <span className="ml-3 text-gray-500">Loading Repository...</span>
+          <span className="ml-3 text-muted-foreground">Loading Repository...</span>
         </div>
       )}
     </div>
