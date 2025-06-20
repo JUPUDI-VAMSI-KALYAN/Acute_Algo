@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { ChevronDown, Search } from 'lucide-react';
+import { DataTablePagination } from './DataTablePagination';
 
 interface FunctionAnalysisProps {
   data: AnalysisData;
@@ -121,6 +122,8 @@ export const FunctionAnalysis: React.FC<FunctionAnalysisProps> = ({ data }) => {
   const [selectedFilePath, setSelectedFilePath] = useState<string>('');
   const [functionCode, setFunctionCode] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
 
   const getCleanPath = (path: string) => {
     // This regex looks for the temporary directory pattern /T/a-random-hash/ and captures everything after it.
@@ -145,6 +148,12 @@ export const FunctionAnalysis: React.FC<FunctionAnalysisProps> = ({ data }) => {
   const filteredFunctions = useMemo(() => {
     return allFunctions.filter(func => func.name.toLowerCase().includes(searchTerm.toLowerCase()));
   }, [allFunctions, searchTerm]);
+
+  const paginatedFunctions = useMemo(() => {
+    const start = (page - 1) * perPage;
+    const end = start + perPage;
+    return filteredFunctions.slice(start, end);
+  }, [filteredFunctions, page, perPage]);
 
   const handleFunctionClick = (func: FunctionInfo & {filePath: string, language: string}) => {
     setSelectedFunction(func);
@@ -201,7 +210,7 @@ export const FunctionAnalysis: React.FC<FunctionAnalysisProps> = ({ data }) => {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {filteredFunctions.map((func) => (
+                    {paginatedFunctions.map((func) => (
                         <TableRow key={`${func.filePath}-${func.name}-${func.startLine}`} onClick={() => handleFunctionClick(func)} className="cursor-pointer">
                             <TableCell className="font-medium">{func.name}</TableCell>
                             <TableCell>{func.language}</TableCell>
@@ -211,6 +220,15 @@ export const FunctionAnalysis: React.FC<FunctionAnalysisProps> = ({ data }) => {
                     ))}
                 </TableBody>
             </Table>
+        </div>
+        <div className="mt-4">
+            <DataTablePagination
+                page={page}
+                count={filteredFunctions.length}
+                perPage={perPage}
+                onPageChange={setPage}
+                onPerPageChange={setPerPage}
+            />
         </div>
       </CardContent>
     </Card>

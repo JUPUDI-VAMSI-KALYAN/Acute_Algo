@@ -1,72 +1,71 @@
 "use client"
 
-import * as React from "react"
+import * as React from 'react';
 import {
   LayoutDashboard,
   Code,
   PlayCircle,
   Settings,
-  HelpCircle,
-  MessageSquare
-} from "lucide-react"
+  MessageSquare,
+  LifeBuoy,
+} from 'lucide-react';
 
-import { NavMain } from "@/components/nav-main"
-import { NavUser } from "@/components/nav-user"
+import { NavMain } from '@/components/nav-main';
+import { NavUser } from '@/components/nav-user';
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
   useSidebar,
-} from "@/components/ui/sidebar"
-import { Separator } from "./ui/separator"
-import { Button } from "./ui/button"
+} from '@/components/ui/sidebar';
+import { Separator } from './ui/separator';
+import { Button } from './ui/button';
 
 const data = {
   user: {
-    name: "Vamsi",
-    email: "vamsi@acme.com",
-    avatar: "/avatars/shadcn.jpg", // Replace with actual path or dynamic value
+    name: 'Vamsi',
+    email: 'vamsi@acme.com',
+    avatar: '/avatars/shadcn.jpg', // Replace with actual path or dynamic value
   },
   navMain: [
     {
-      title: "Overview",
-      url: "/dashboard",
+      title: 'Overview',
+      url: '/dashboard',
       icon: LayoutDashboard,
-      isActive: true,
     },
     {
-      title: "Algorithms",
-      url: "/dashboard/algorithms",
+      title: 'Algorithms',
+      url: '/dashboard/algorithms',
       icon: Code,
     },
     {
-      title: "Playground",
-      url: "/dashboard/playground",
+      title: 'Playground',
+      url: '/dashboard/playground',
       icon: PlayCircle,
     },
   ],
   navSecondary: [
     {
-      title: "Settings",
-      url: "/dashboard/settings",
+      title: 'Settings',
+      url: '/dashboard/settings',
       icon: Settings,
     },
     {
-      title: "Support",
-      url: "/dashboard/support",
-      icon: HelpCircle,
+      title: 'Support',
+      url: '/dashboard/support',
+      icon: LifeBuoy,
     },
     {
-      title: "Feedback",
-      url: "/dashboard/feedback",
+      title: 'Feedback',
+      url: '/dashboard/feedback',
       icon: MessageSquare,
     },
   ],
-}
+};
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { state } = useSidebar()
+  const { state } = useSidebar();
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -74,13 +73,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <Button variant="ghost" size="icon" className="h-12 w-12">
             <Code className="h-7 w-7" />
           </Button>
-          {state === "expanded" && (
+          {state === 'expanded' && (
             <h1 className="text-2xl font-serif font-bold">Acute Algo</h1>
           )}
         </div>
       </SidebarHeader>
       <SidebarContent className="flex flex-col">
-        <NavMain items={data.navMain} title="Platform" />
+        <NavMain items={data.navMain} />
         <div className="mt-auto">
           <NavMain items={data.navSecondary} />
         </div>
@@ -90,5 +89,5 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavUser user={data.user} />
       </SidebarFooter>
     </Sidebar>
-  )
+  );
 }

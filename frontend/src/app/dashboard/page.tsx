@@ -69,7 +69,7 @@ export default function DashboardPage() {
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset>
+      <SidebarInset className="flex h-screen flex-col">
         <SiteHeader
           analysisData={analysisData}
           onReset={handleReset}
@@ -77,7 +77,7 @@ export default function DashboardPage() {
           onError={handleError}
           githubUrl={githubUrl}
         />
-        <div className="flex flex-1 flex-col">
+        <div className="flex flex-1 flex-col overflow-y-auto">
           <DashboardLayout data={analysisData} onReset={handleReset} />
         </div>
       </SidebarInset>
