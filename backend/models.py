@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field, HttpUrl, ConfigDict
 from typing import Dict, List, Optional
 from enum import Enum
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class AnalysisRequest(BaseModel):
@@ -40,6 +41,9 @@ class FunctionInfo(BaseModel):
     end_line: int = Field(..., alias="endLine")
     line_count: int = Field(..., alias="lineCount")
     code: Optional[str] = Field(None, alias="code", description="Function source code")
+    is_algorithm: bool = Field(default=False, alias="isAlgorithm", description="Whether function is classified as algorithmic")
+    algorithm_score: float = Field(default=0.0, alias="algorithmScore", description="Algorithm classification score")
+    classification_reason: str = Field(default="", alias="classificationReason", description="Reason for classification")
     ai_analysis: Optional[AIAnalysisData] = Field(None, alias="aiAnalysis", description="AI-generated analysis")
 
     model_config = ConfigDict(populate_by_name=True)
@@ -50,8 +54,10 @@ class FileAnalysis(BaseModel):
     path: str = Field(..., alias="path")
     language: str = Field(..., alias="language")
     function_count: int = Field(..., alias="functionCount")
+    algorithm_count: int = Field(default=0, alias="algorithmCount")
     functions: List[FunctionInfo] = Field(default=[], alias="functions")
     breakdown: Dict[str, int] = Field(default={}, alias="breakdown")
+    algorithm_breakdown: Dict[str, int] = Field(default={}, alias="algorithmBreakdown")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -60,6 +66,7 @@ class LanguageStats(BaseModel):
     """Statistics for a programming language"""
     files: int = Field(..., alias="files")
     functions: int = Field(..., alias="functions")
+    algorithms: int = Field(default=0, alias="algorithms")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -67,10 +74,12 @@ class LanguageStats(BaseModel):
 class FunctionAnalysis(BaseModel):
     """Function analysis results"""
     total_functions: int = Field(..., alias="totalFunctions")
+    total_algorithms: int = Field(default=0, alias="totalAlgorithms")
     total_analyzed_files: int = Field(..., alias="totalAnalyzedFiles")
     languages: Dict[str, LanguageStats] = Field(default={}, alias="languages")
     files: List[FileAnalysis] = Field(default=[], alias="files")
     avg_functions_per_file: float = Field(..., alias="avgFunctionsPerFile")
+    avg_algorithms_per_file: float = Field(default=0.0, alias="avgAlgorithmsPerFile")
     most_common_language: Optional[str] = Field(None, alias="mostCommonLanguage")
     largest_files: List[FileAnalysis] = Field(default=[], alias="largestFiles")
 
@@ -150,4 +159,4 @@ class ChatResponse(BaseModel):
     response: str = Field(..., description="AI response")
     conversation_id: Optional[str] = Field(None, alias="conversationId")
 
-    model_config = ConfigDict(populate_by_name=True) 
+    model_config = ConfigDict(populate_by_name=True)

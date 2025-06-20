@@ -12,6 +12,9 @@ const api = axios.create({
   },
 });
 
+// Export the api instance for direct use
+export { api };
+
 // Response interceptor for error handling
 api.interceptors.response.use(
   (response) => response,
@@ -47,27 +50,35 @@ export interface FunctionInfo {
   lineCount: number;
   code?: string;
   aiAnalysis?: AIAnalysisData;
+  is_algorithm: boolean;
+  algorithm_score: number;
+  classification_reason: string;
 }
 
 export interface FileAnalysis {
   path: string;
   language: string;
   functionCount: number;
+  algorithm_count: number;
   functions: FunctionInfo[];
   breakdown: Record<string, number>;
+  algorithm_breakdown: Record<string, number>;
 }
 
 export interface LanguageStats {
   files: number;
   functions: number;
+  algorithms: number;
 }
 
 export interface FunctionAnalysis {
   totalFunctions: number;
+  totalAlgorithms: number;
   totalAnalyzedFiles: number;
   languages: Record<string, LanguageStats>;
   files: FileAnalysis[];
   avgFunctionsPerFile: number;
+  avgAlgorithmsPerFile: number;
   mostCommonLanguage: string | null;
   largestFiles: FileAnalysis[];
 }
@@ -150,29 +161,7 @@ interface ValidationError {
   msg: string;
 }
 
-// API functions
-export const analyzeRepository = async (githubUrl: string): Promise<AnalysisData> => {
-  try {
-    // Use longer timeout for repository analysis - large repos like React can take 2-3 minutes
-    const response = await api.post<AnalysisResponse>('/api/analyze-repo', {
-      githubUrl,
-    }, {
-      timeout: 300000, // 5 minutes for very large repositories
-    });
-
-    if (response.data.success) {
-      return response.data.data;
-    } else {
-      throw new Error('Analysis failed');
-    }
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      const errorMessage = error.response?.data?.detail || error.message;
-      throw new Error(errorMessage);
-    }
-    throw error;
-  }
-};
+// ===================== AI ANALYSIS FUNCTIONS =====================
 
 export const analyzeFunctionWithAI = async (request: AIAnalysisRequest): Promise<AIAnalysisData> => {
   try {
@@ -290,4 +279,242 @@ export const copyToClipboard = async (text: string): Promise<boolean> => {
       return false;
     }
   }
-}; 
+};
+
+// New database-related interfaces
+export interface Repository {
+  id: string;
+  name: string;
+  githubUrl: string;
+  directoryTree?: string;
+  fileContents?: string;
+  totalCharacters?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AnalysisSession {
+  id: string;
+  repositoryId: string;
+  totalFunctions: number;
+  totalAlgorithms: number;
+  totalAnalyzedFiles: number;
+  avgFunctionsPerFile: number;
+  avgAlgorithmsPerFile: number;
+  mostCommonLanguage?: string;
+  createdAt: string;
+}
+
+export interface DatabaseAIAnalysis {
+  id: string;
+  functionId: string;
+  pseudocode: string;
+  flowchart: string;
+  complexityAnalysis: string;
+  optimizationSuggestions: string[];
+  potentialIssues: string[];
+  createdAt: string;
+}
+
+export interface ChatConversation {
+  id: string;
+  title: string;
+  contextType: string;
+  contextData?: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface ChatMessageDB {
+  id: string;
+  conversationId: string;
+  role: string;
+  content: string;
+  createdAt: string;
+}
+
+// New API functions for database operations
+export const analyzeAndSaveRepository = async (githubUrl: string): Promise<{
+  success: boolean;
+  message: string;
+  repositoryId: string;
+  analysisSessionId: string;
+  data: AnalysisData;
+}> => {
+  try {
+    const response = await api.post('/api/analyze-and-save', { github_url: githubUrl });
+    const responseData = response.data;
+
+    // The backend might send snake_case, let's normalize it to what the frontend expects.
+    const normalizedData = {
+      ...responseData,
+      repositoryId: responseData.repositoryId || responseData.repository_id,
+      analysisSessionId: responseData.analysisSessionId || responseData.analysis_session_id,
+    };
+
+    return normalizedData;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      console.error('API Error Response:', error.response.data);
+    }
+    throw error;
+  }
+};
+
+export const getRepositories = async (): Promise<Repository[]> => {
+  try {
+    const response = await api.get('/api/database/repositories');
+    return response.data;
+  } catch (error) {
+    console.error('Failed to get repositories:', error);
+    return [];
+  }
+};
+
+export const getRepositoriesSummary = async (limit: number = 10): Promise<Repository[]> => {
+  const response = await api.get(`/api/database/repositories/summary?limit=${limit}`);
+  return response.data;
+};
+
+export const getRepositoryAnalysis = async (repositoryId: string): Promise<{
+  repository: Repository;
+  analysisSession: AnalysisSession;
+  fileAnalyses: unknown[];
+  functions: unknown[];
+  languageStats: unknown[];
+}> => {
+  try {
+    const response = await api.get(`/api/database/repository/${repositoryId}`);
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const errorMessage = error.response?.data?.detail || error.message;
+      throw new Error(errorMessage);
+    }
+    throw error;
+  }
+};
+
+export const getRepositoryOverview = async (repositoryId: number): Promise<{
+  repository: Repository;
+  analysisSession: AnalysisSession;
+  fileAnalyses: unknown[];
+  functions: unknown[];
+  languageStats: unknown[];
+}> => {
+  const response = await api.get(`/api/database/repository/${repositoryId}/overview`);
+  return response.data;
+};
+
+export const getRepositoryFunctions = async (
+  repositoryId: number, 
+  page: number = 1, 
+  limit: number = 20, 
+  algorithmOnly: boolean = false
+): Promise<{ functions: unknown[], total: number, page: number, limit: number, total_pages: number }> => {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+    algorithm_only: algorithmOnly.toString()
+  });
+  const response = await api.get(`/api/database/repository/${repositoryId}/functions?${params}`);
+  return response.data;
+};
+
+export const getRepositoryFiles = async (
+  repositoryId: number, 
+  page: number = 1, 
+  limit: number = 20
+): Promise<{ files: unknown[], total: number, page: number, limit: number, total_pages: number }> => {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString()
+  });
+  const response = await api.get(`/api/database/repository/${repositoryId}/files?${params}`);
+  return response.data;
+};
+
+export const saveAIAnalysis = async (data: {
+  functionId: string;
+  pseudocode: string;
+  flowchart: string;
+  complexityAnalysis: string;
+  optimizationSuggestions: string[];
+  potentialIssues: string[];
+}): Promise<unknown> => {
+  try {
+    const response = await api.post('/api/database/ai-analysis', data);
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const errorMessage = error.response?.data?.detail || error.message;
+      throw new Error(errorMessage);
+    }
+    throw error;
+  }
+};
+
+export const getFunctionWithAIAnalysis = async (functionId: string): Promise<{
+  function: unknown;
+  aiAnalysis?: DatabaseAIAnalysis;
+}> => {
+  try {
+    const response = await api.get(`/api/database/function/${functionId}/ai-analysis`);
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const errorMessage = error.response?.data?.detail || error.message;
+      throw new Error(errorMessage);
+    }
+    throw error;
+  }
+};
+
+export const createChatConversation = async (data: {
+  title: string;
+  contextType: string;
+  contextData?: Record<string, unknown>;
+}): Promise<ChatConversation> => {
+  try {
+    const response = await api.post('/api/database/chat/conversation', data);
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const errorMessage = error.response?.data?.detail || error.message;
+      throw new Error(errorMessage);
+    }
+    throw error;
+  }
+};
+
+export const saveChatMessage = async (data: {
+  conversationId: string;
+  role: string;
+  content: string;
+}): Promise<unknown> => {
+  try {
+    const response = await api.post('/api/database/chat/message', data);
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const errorMessage = error.response?.data?.detail || error.message;
+      throw new Error(errorMessage);
+    }
+    throw error;
+  }
+};
+
+export interface AlgorithmFunction {
+  id: string;
+  name: string;
+  type: string;
+  start_line: number;
+  end_line: number;
+  line_count: number;
+  is_algorithm: boolean;
+  algorithm_score: number;
+  classification_reason: string;
+  file_analyses: {
+    file_path: string;
+    language: string;
+  };
+}

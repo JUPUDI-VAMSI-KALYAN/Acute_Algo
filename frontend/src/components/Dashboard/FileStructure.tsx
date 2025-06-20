@@ -2,6 +2,9 @@
 
 import React, { useState, useMemo } from 'react';
 import { AnalysisData } from '../../lib/api';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 interface FileStructureProps {
   data: AnalysisData;
@@ -47,12 +50,12 @@ const FileTreeItem: React.FC<FileTreeItemProps> = ({ node, level, isExpanded, on
   return (
     <div>
       <div 
-        className={`flex items-center py-1 px-2 hover:bg-gray-50 cursor-pointer transition-colors rounded`}
+        className={`flex items-center py-1 px-2 hover:bg-muted cursor-pointer transition-colors rounded`}
         style={{ paddingLeft: `${paddingLeft}px` }}
         onClick={node.type === 'folder' ? onToggle : undefined}
       >
         {node.type === 'folder' && (
-          <span className="mr-2 text-gray-400 text-sm">
+          <span className="mr-2 text-muted-foreground text-sm">
             {isExpanded ? '📂' : '📁'}
           </span>
         )}
@@ -63,15 +66,15 @@ const FileTreeItem: React.FC<FileTreeItemProps> = ({ node, level, isExpanded, on
         )}
         <span className={`text-sm ${
           node.type === 'folder' 
-            ? 'font-medium text-gray-800' 
-            : 'text-gray-700'
+            ? 'font-medium' 
+            : 'text-muted-foreground'
         }`}>
           {node.name}
         </span>
         {node.type === 'file' && node.extension && (
-          <span className="ml-auto text-xs text-gray-400">
+          <Badge variant="outline" className="ml-auto text-xs">
             {node.extension}
-          </span>
+          </Badge>
         )}
       </div>
     </div>
@@ -206,88 +209,104 @@ export const FileStructure: React.FC<FileStructureProps> = ({ data }) => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Directory Structure</h2>
-            <p className="text-gray-600">
-              Interactive file tree for <span className="font-medium">{data.repositoryName}</span>
-            </p>
-          </div>
-          <div className="flex items-center space-x-3">
-            <div className="text-sm text-gray-500">
-              <span className="font-medium">{counts.files}</span> files • <span className="font-medium">{counts.folders}</span> folders
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Directory Structure</CardTitle>
+              <CardDescription>
+                Interactive file tree for {data.repositoryName}
+              </CardDescription>
             </div>
-            <button
-              onClick={expandAll}
-              className="px-3 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded text-sm font-medium transition-colors"
-            >
-              Expand All
-            </button>
-            <button
-              onClick={collapseAll}
-              className="px-3 py-1 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded text-sm font-medium transition-colors"
-            >
-              Collapse All
-            </button>
+            <div className="flex items-center space-x-3">
+              <div className="text-sm text-muted-foreground">
+                <span className="font-medium">{counts.files}</span> files • <span className="font-medium">{counts.folders}</span> folders
+              </div>
+              <Button
+                onClick={expandAll}
+                variant="outline"
+                size="sm"
+              >
+                Expand All
+              </Button>
+              <Button
+                onClick={collapseAll}
+                variant="outline"
+                size="sm"
+              >
+                Collapse All
+              </Button>
+            </div>
           </div>
-        </div>
-      </div>
+        </CardHeader>
+      </Card>
 
       {/* Interactive File Tree */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-        <div className="p-4 bg-gray-50 border-b border-gray-200">
-          <div className="flex items-center space-x-2">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
             <span className="text-lg">🗂️</span>
-            <h3 className="font-semibold text-gray-900">Project Files</h3>
-          </div>
-        </div>
+            <span>Project Files</span>
+          </CardTitle>
+        </CardHeader>
         
-        <div className="p-4">
-          <div className="max-h-96 overflow-y-auto bg-gray-50 rounded-lg p-4">
+        <CardContent>
+          <div className="max-h-96 overflow-y-auto bg-muted/50 rounded-lg p-4">
             {treeData.length > 0 ? (
               <div className="space-y-1">
                 {treeData.map(node => renderTreeNode(node))}
               </div>
             ) : (
-              <div className="text-center text-gray-500 py-8">
+              <div className="text-center text-muted-foreground py-8">
                 <span className="text-2xl mb-2 block">📁</span>
                 <p>No directory structure available</p>
               </div>
             )}
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* File Type Statistics */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">File Types</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="text-center p-3 bg-yellow-50 rounded-lg">
-            <div className="text-2xl mb-1">📜</div>
-            <p className="text-lg font-bold text-yellow-900">{data.fileCounts.javascript}</p>
-            <p className="text-sm text-yellow-700">JavaScript</p>
+      <Card>
+        <CardHeader>
+          <CardTitle>File Types</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Card>
+              <CardContent className="text-center p-4">
+                <div className="text-2xl mb-2">📜</div>
+                <p className="text-lg font-bold">{data.fileCounts.javascript}</p>
+                <p className="text-sm text-muted-foreground">JavaScript</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="text-center p-4">
+                <div className="text-2xl mb-2">🔷</div>
+                <p className="text-lg font-bold">{data.fileCounts.typescript}</p>
+                <p className="text-sm text-muted-foreground">TypeScript</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="text-center p-4">
+                <div className="text-2xl mb-2">🐍</div>
+                <p className="text-lg font-bold">{data.fileCounts.python}</p>
+                <p className="text-sm text-muted-foreground">Python</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="text-center p-4">
+                <div className="text-2xl mb-2">📄</div>
+                <p className="text-lg font-bold">{data.fileCounts.total}</p>
+                <p className="text-sm text-muted-foreground">Total Files</p>
+              </CardContent>
+            </Card>
           </div>
-          
-          <div className="text-center p-3 bg-blue-50 rounded-lg">
-            <div className="text-2xl mb-1">🔷</div>
-            <p className="text-lg font-bold text-blue-900">{data.fileCounts.typescript}</p>
-            <p className="text-sm text-blue-700">TypeScript</p>
-          </div>
-          
-          <div className="text-center p-3 bg-green-50 rounded-lg">
-            <div className="text-2xl mb-1">🐍</div>
-            <p className="text-lg font-bold text-green-900">{data.fileCounts.python}</p>
-            <p className="text-sm text-green-700">Python</p>
-          </div>
-          
-          <div className="text-center p-3 bg-gray-50 rounded-lg">
-            <div className="text-2xl mb-1">📄</div>
-            <p className="text-lg font-bold text-gray-900">{data.fileCounts.total}</p>
-            <p className="text-sm text-gray-700">Total Files</p>
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }; 

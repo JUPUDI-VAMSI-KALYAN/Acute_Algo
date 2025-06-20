@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import { AnalysisData } from '../../lib/api';
 import { OverviewDashboard } from './OverviewDashboard';
-import { FunctionAnalysis } from './FunctionAnalysis';
 import { FileStructure } from './FileStructure';
 import { CodeViewer } from './CodeViewer';
 import ChatAssistant from '../ChatAssistant';
@@ -23,12 +22,8 @@ const DashboardContent: React.FC<DashboardLayoutProps> = ({
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
-    if (tab !== 'functions') {
-      setSelectedFunction(null);
-    }
+    setSelectedFunction(null);
   };
-
-  const shouldShowFunctionInfo = activeTab === 'functions' && selectedFunction;
 
   return (
     <div className="h-screen bg-gray-50 flex overflow-hidden">
@@ -37,15 +32,11 @@ const DashboardContent: React.FC<DashboardLayoutProps> = ({
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
             <TabsList>
               <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="functions">Functions</TabsTrigger>
               <TabsTrigger value="structure">File Structure</TabsTrigger>
               <TabsTrigger value="code">Code Viewer</TabsTrigger>
             </TabsList>
             <TabsContent value="overview">
               <OverviewDashboard data={data} />
-            </TabsContent>
-            <TabsContent value="functions">
-              <FunctionAnalysis data={data} />
             </TabsContent>
             <TabsContent value="structure">
               <FileStructure data={data} />
@@ -58,7 +49,7 @@ const DashboardContent: React.FC<DashboardLayoutProps> = ({
       </div>
 
       <ChatAssistant 
-        functionInfo={shouldShowFunctionInfo ? {
+        functionInfo={selectedFunction ? {
           name: selectedFunction.name,
           code: selectedFunction.code
         } : null}
@@ -66,7 +57,7 @@ const DashboardContent: React.FC<DashboardLayoutProps> = ({
           name: data.repositoryName,
           totalFunctions: data.functionAnalysis?.totalFunctions || 0,
           languages: data.functionAnalysis?.languages ? Object.keys(data.functionAnalysis.languages) : [],
-          structure: data.directoryTree.substring(0, 1000)
+          structure: data.directoryTree ? data.directoryTree.substring(0, 1000) : ''
         }}
       />
     </div>

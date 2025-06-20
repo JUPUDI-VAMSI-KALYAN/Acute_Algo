@@ -8,10 +8,12 @@ import {
   Settings,
   MessageSquare,
   LifeBuoy,
+  GitBranch,
 } from 'lucide-react';
 
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
+import { RepositoryCombobox } from '@/components/RepositoryCombobox';
 import {
   Sidebar,
   SidebarContent,
@@ -22,17 +24,23 @@ import {
 import { Separator } from './ui/separator';
 import { Button } from './ui/button';
 
-const data = {
+// Move static data outside component to prevent re-renders
+const SIDEBAR_DATA = {
   user: {
     name: 'Vamsi',
     email: 'vamsi@acme.com',
-    avatar: '/avatars/shadcn.jpg', // Replace with actual path or dynamic value
+    avatar: '/avatars/shadcn.jpg',
   },
   navMain: [
     {
       title: 'Overview',
       url: '/dashboard',
       icon: LayoutDashboard,
+    },
+    {
+      title: 'Functions',
+      url: '/dashboard/functions',
+      icon: GitBranch,
     },
     {
       title: 'Algorithms',
@@ -66,6 +74,7 @@ const data = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { state } = useSidebar();
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -79,14 +88,26 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </div>
       </SidebarHeader>
       <SidebarContent className="flex flex-col">
-        <NavMain items={data.navMain} />
+        {/* Repository Selection */}
+        {state === 'expanded' && (
+          <div className="px-2 py-2">
+            <RepositoryCombobox 
+              placeholder="Select repository..."
+            />
+          </div>
+        )}
+        
+        {/* Add separator when repository selector is shown */}
+        {state === 'expanded' && <Separator className="mx-2" />}
+        
+        <NavMain items={SIDEBAR_DATA.navMain} />
         <div className="mt-auto">
-          <NavMain items={data.navSecondary} />
+          <NavMain items={SIDEBAR_DATA.navSecondary} />
         </div>
       </SidebarContent>
       <SidebarFooter>
         <Separator className="my-2" />
-        <NavUser user={data.user} />
+        <NavUser user={SIDEBAR_DATA.user} />
       </SidebarFooter>
     </Sidebar>
   );
