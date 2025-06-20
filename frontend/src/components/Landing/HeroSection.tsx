@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 
 interface HeroSectionProps {
@@ -8,7 +8,7 @@ interface HeroSectionProps {
 export const HeroSection: React.FC<HeroSectionProps> = ({ onGetStarted }) => {
   const [currentWord, setCurrentWord] = useState('better');
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const words = ['better', 'faster', 'smarter', 'modern'];
+  const words = useMemo(() =>  ['better', 'faster', 'smarter', 'modern', 'efficient', 'optimized', 'perfect'], []);
   const [wordIndex, setWordIndex] = useState(0);
 
   useEffect(() => {
@@ -156,7 +156,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onGetStarted }) => {
         <div className="mb-12 space-y-6">
           <div className="relative">
             <h1 className="relative text-7xl md:text-8xl lg:text-9xl font-black text-white mb-8 leading-tight flex flex-col items-center gap-6">
-              <span className="inline-block animate-fade-in-up">Make your code</span>
+              <span className="inline-block animate-fade-in-up">Make your Algo</span>
               <span 
                 className={`inline-block px-8 py-3 rounded-lg transform hover:scale-105 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 ${
                   isTransitioning ? 'word-transition-exit' : 'word-transition-enter'
@@ -224,36 +224,27 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onGetStarted }) => {
         </div>
 
         {/* Enhanced Social Proof with Animation */}
-        <div className="mt-20 text-center animate-fade-in-up delay-1200">
-          <p className="text-sm text-gray-400 mb-6">Trusted by developers worldwide</p>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-8 items-center opacity-60">
-            <div className="flex flex-col items-center space-y-2 hover:opacity-100 transition-opacity">
-              <div className="text-3xl">🐙</div>
-              <div className="text-lg font-bold text-gray-300">GitHub</div>
+        <div className="mt-20 text-center">
+          <p className="text-sm text-gray-400 mb-6">Industries we serve</p>
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-8 items-center opacity-80">
+            <div className="flex flex-col items-center space-y-2">
+              <div className="text-lg font-bold text-gray-300">Financial Services</div>
             </div>
-            <div className="flex flex-col items-center space-y-2 hover:opacity-100 transition-opacity">
-              <div className="text-3xl">🔒</div>
-              <div className="text-lg font-bold text-gray-300">Enterprise</div>
+            <div className="flex flex-col items-center space-y-2">
+              <div className="text-lg font-bold text-gray-300">Healthcare</div>
             </div>
-            <div className="flex flex-col items-center space-y-2 hover:opacity-100 transition-opacity">
-              <div className="text-3xl">🚀</div>
-              <div className="text-lg font-bold text-gray-300">Production</div>
+            <div className="flex flex-col items-center space-y-2">
+              <div className="text-lg font-bold text-gray-300">Aerospace</div>
             </div>
-            <div className="flex flex-col items-center space-y-2 hover:opacity-100 transition-opacity">
-              <div className="text-3xl">⚡</div>
-              <div className="text-lg font-bold text-gray-300">Fast Analysis</div>
+            <div className="flex flex-col items-center space-y-2">
+              <div className="text-lg font-bold text-gray-300 whitespace-nowrap">Autonomous Vehicles</div>
             </div>
-            <div className="flex flex-col items-center space-y-2 hover:opacity-100 transition-opacity col-span-2 md:col-span-1">
-              <div className="text-3xl">🛰️</div>
-              <div className="text-lg font-bold text-gray-300">Mission Critical</div>
+            <div className="flex flex-col items-center space-y-2">
+              <div className="text-lg font-bold text-gray-300">Gaming</div>
             </div>
-          </div>
-        </div>
-
-        {/* Scroll Indicator */}
-        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
-          <div className="w-6 h-10 border-2 border-gray-400 rounded-full flex justify-center">
-            <div className="w-1 h-3 bg-gray-400 rounded-full mt-2 animate-pulse"></div>
+            <div className="flex flex-col items-center space-y-2">
+              <div className="text-lg font-bold text-gray-300">Energy</div>
+            </div>
           </div>
         </div>
       </div>
