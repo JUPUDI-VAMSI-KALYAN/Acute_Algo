@@ -21,14 +21,15 @@ export default function RootLayout({
   }, []);
 
   const isDashboard = pathname.startsWith('/dashboard');
+  const isLogin = pathname === '/login';
 
   return (
     <html lang="en">
       <body
         className={`${inter.className} antialiased bg-gray-900 min-h-screen`}
       >
-        {isMounted && !isDashboard && <Header />}
-        <main className={isMounted && !isDashboard ? 'pt-16' : ''}>
+        {isMounted && !isDashboard && !isLogin && <Header />}
+        <main className={isMounted && !isDashboard && !isLogin ? 'pt-16' : ''}>
           {children}
         </main>
       </body>

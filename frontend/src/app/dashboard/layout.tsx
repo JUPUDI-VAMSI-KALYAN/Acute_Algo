@@ -34,20 +34,26 @@ export default function DashboardLayout({
     try {
       const data = await getRepositoryAnalysis(repositoryId);
       
+      // Check if data and repository exist
+      if (!data || !data.repository) {
+        console.error('Repository data not found in response');
+        return;
+      }
+      
       // Transform Repository data to AnalysisData format for the header
       const analysisData: AnalysisData = {
-        repositoryName: data.repository.name,
+        repositoryName: data.repository.name || 'Unknown Repository',
         fileCounts: { javascript: 0, python: 0, typescript: 0, total: 0 },
         directoryTree: data.repository.directoryTree || '',
         fileContents: data.repository.fileContents || '',
         totalCharacters: data.repository.totalCharacters || 0,
         functionAnalysis: {
-          totalFunctions: data.analysisSession.totalFunctions,
-          totalAlgorithms: data.analysisSession.totalAlgorithms,
-          totalAnalyzedFiles: data.analysisSession.totalAnalyzedFiles,
-          avgFunctionsPerFile: data.analysisSession.avgFunctionsPerFile,
-          avgAlgorithmsPerFile: data.analysisSession.avgAlgorithmsPerFile,
-          mostCommonLanguage: data.analysisSession.mostCommonLanguage || null,
+          totalFunctions: data.analysisSession?.totalFunctions || 0,
+          totalAlgorithms: data.analysisSession?.totalAlgorithms || 0,
+          totalAnalyzedFiles: data.analysisSession?.totalAnalyzedFiles || 0,
+          avgFunctionsPerFile: data.analysisSession?.avgFunctionsPerFile || 0,
+          avgAlgorithmsPerFile: data.analysisSession?.avgAlgorithmsPerFile || 0,
+          mostCommonLanguage: data.analysisSession?.mostCommonLanguage || null,
           languages: {},
           files: [],
           largestFiles: [],

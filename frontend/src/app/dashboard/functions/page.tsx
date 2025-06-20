@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { getRepositoryFunctions, AlgorithmFunction } from '@/lib/api';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -15,8 +15,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from "@/components/ui/input";
-import { Search } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Search, Filter, X } from 'lucide-react';
 import Link from 'next/link';
+
+type FilterType = 'all' | 'algorithm' | 'regular';
+type LanguageFilter = 'all' | string;
 
 export default function FunctionsPage() {
   const [functions, setFunctions] = useState<AlgorithmFunction[]>([]);
@@ -25,8 +29,12 @@ export default function FunctionsPage() {
   const [error, setError] = useState<string | null>(null);
   const [pagination, setPagination] = useState({ page: 1, total: 0, total_pages: 0 });
   const [repositoryId, setRepositoryId] = useState<string | null>(null);
+  
+  // Filter states
   const [searchTerm, setSearchTerm] = useState('');
-  const [filteredFunctions, setFilteredFunctions] = useState<AlgorithmFunction[]>([]);
+  const [typeFilter, setTypeFilter] = useState<FilterType>('all');
+  const [languageFilter, setLanguageFilter] = useState<LanguageFilter>('all');
+  
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -48,7 +56,7 @@ export default function FunctionsPage() {
     setError(null);
 
     try {
-      const result = await getRepositoryFunctions(parseInt(repositoryId), page, 50, false); // Get all functions, not just algorithms
+      const result = await getRepositoryFunctions(parseInt(repositoryId), page, 50, false);
       const newFunctions = result.functions as AlgorithmFunction[];
 
       if (page === 1) {
@@ -72,18 +80,32 @@ export default function FunctionsPage() {
     }
   }, [repositoryId, loadFunctions]);
 
-  // Filter functions based on search term
-  useEffect(() => {
-    if (searchTerm) {
-      const filtered = functions.filter(func => 
+  // Get unique languages for filter
+  const availableLanguages = useMemo(() => {
+    const languages = new Set(functions.map(func => func.file_analyses.language));
+    return Array.from(languages).sort();
+  }, [functions]);
+
+  // Filter functions based on all filters
+  const filteredFunctions = useMemo(() => {
+    return functions.filter(func => {
+      // Search filter
+      const matchesSearch = searchTerm === '' || 
         func.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        func.file_analyses.file_path.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      setFilteredFunctions(filtered);
-    } else {
-      setFilteredFunctions(functions);
-    }
-  }, [functions, searchTerm]);
+        func.file_analyses.file_path.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      // Type filter
+      const matchesType = typeFilter === 'all' || 
+        (typeFilter === 'algorithm' && func.algorithm_score > 0.5) ||
+        (typeFilter === 'regular' && func.algorithm_score <= 0.5);
+      
+      // Language filter
+      const matchesLanguage = languageFilter === 'all' || 
+        func.file_analyses.language === languageFilter;
+      
+      return matchesSearch && matchesType && matchesLanguage;
+    });
+  }, [functions, searchTerm, typeFilter, languageFilter]);
 
   const handleLoadMore = () => {
     if (pagination.page < pagination.total_pages) {
@@ -91,8 +113,20 @@ export default function FunctionsPage() {
     }
   };
 
+  const clearFilters = () => {
+    setSearchTerm('');
+    setTypeFilter('all');
+    setLanguageFilter('all');
+  };
 
-  
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (searchTerm !== '') count++;
+    if (typeFilter !== 'all') count++;
+    if (languageFilter !== 'all') count++;
+    return count;
+  }, [searchTerm, typeFilter, languageFilter]);
+
   const getLanguageColor = (language: string) => {
     const colors: Record<string, string> = {
       javascript: 'bg-yellow-500',
@@ -110,7 +144,6 @@ export default function FunctionsPage() {
   };
 
   const getCleanPath = (path: string) => {
-    // Remove temp directory pattern if present
     const match = path.match(/T\/[^\/]+\/(.*)/);
     if (match && match[1]) {
       return match[1];
@@ -118,55 +151,108 @@ export default function FunctionsPage() {
     return path;
   };
 
-  const renderContent = () => {
-    if (loading) {
-      return (
-        <div className="flex items-center justify-center h-full">
+  if (loading) {
+    return (
+      <main className="flex h-full flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+        <div className="flex items-center">
+          <h1 className="text-lg font-semibold md:text-2xl text-foreground">
+            Functions
+          </h1>
+        </div>
+        <div className="flex flex-1 items-center justify-center">
           <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
           <span className="ml-3 text-gray-500">Loading functions...</span>
         </div>
-      );
-    }
+      </main>
+    );
+  }
 
-    if (error) {
-      return (
-        <div className="flex items-center justify-center h-full text-red-500">
+  if (error) {
+    return (
+      <main className="flex h-full flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+        <div className="flex items-center">
+          <h1 className="text-lg font-semibold md:text-2xl text-foreground">
+            Functions
+          </h1>
+        </div>
+        <div className="flex flex-1 items-center justify-center text-red-500">
           {error}
         </div>
-      );
-    }
+      </main>
+    );
+  }
 
-    if (!repositoryId) {
-      return (
-        <div className="text-center">
-          <h3 className="text-xl font-semibold mb-2">No Repository Selected</h3>
-          <p className="text-muted-foreground mb-4">
-            Please select a repository from your dashboard to view its functions.
-          </p>
-          <Button asChild>
-            <Link href="/dashboard">Go to Dashboard</Link>
-          </Button>
-        </div>
-      );
-    }
-
-    if (functions.length === 0) {
-      return (
-        <div className="text-center">
-          <h3 className="text-xl font-semibold mb-2">No Functions Found</h3>
-          <p className="text-muted-foreground">
-            The selected repository does not contain any detectable functions.
-          </p>
-        </div>
-      );
-    }
-
+  if (!repositoryId) {
     return (
-      <Card className="w-full h-full">
-        <CardHeader>
-          <CardTitle>All Functions ({pagination.total})</CardTitle>
-          <div className="flex items-center space-x-2">
-            <div className="relative w-full max-w-sm">
+      <main className="flex h-full flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+        <div className="flex items-center">
+          <h1 className="text-lg font-semibold md:text-2xl text-foreground">
+            Functions
+          </h1>
+        </div>
+        <div className="flex flex-1 items-center justify-center">
+          <div className="text-center">
+            <h3 className="text-xl font-semibold mb-2">No Repository Selected</h3>
+            <p className="text-muted-foreground mb-4">
+              Please select a repository from your dashboard to view its functions.
+            </p>
+            <Button asChild>
+              <Link href="/dashboard">Go to Dashboard</Link>
+            </Button>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (functions.length === 0) {
+    return (
+      <main className="flex h-full flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+        <div className="flex items-center">
+          <h1 className="text-lg font-semibold md:text-2xl text-foreground">
+            Functions
+          </h1>
+        </div>
+        <div className="flex flex-1 items-center justify-center">
+          <div className="text-center">
+            <h3 className="text-xl font-semibold mb-2">No Functions Found</h3>
+            <p className="text-muted-foreground">
+              The selected repository does not contain any detectable functions.
+            </p>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="h-full flex flex-col gap-4 p-4 lg:gap-6 lg:p-6 overflow-hidden">
+      {/* Fixed Header */}
+      <div className="flex items-center shrink-0">
+        <h1 className="text-lg font-semibold md:text-2xl text-foreground">
+          Functions
+        </h1>
+      </div>
+
+      {/* Fixed Filters Section */}
+      <Card className="shrink-0">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base">
+              All Functions ({filteredFunctions.length} of {functions.length})
+            </CardTitle>
+            {activeFiltersCount > 0 && (
+              <Button variant="outline" size="sm" onClick={clearFilters}>
+                <X className="h-4 w-4 mr-1" />
+                Clear Filters ({activeFiltersCount})
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <div className="flex flex-col sm:flex-row gap-4">
+            {/* Search */}
+            <div className="relative flex-1">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input 
                 placeholder="Search functions or files..."
@@ -175,67 +261,99 @@ export default function FunctionsPage() {
                 className="pl-8"
               />
             </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>File</TableHead>
-                <TableHead>Language</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Lines</TableHead>
-                <TableHead>Algorithm</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredFunctions.map((func) => (
-                <TableRow key={func.id}>
-                  <TableCell className="font-medium">{func.name}</TableCell>
-                  <TableCell className="text-muted-foreground">{getCleanPath(func.file_analyses.file_path)}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={`${getLanguageColor(func.file_analyses.language)} text-white`}>
-                      {func.file_analyses.language}
-                    </Badge>
-                  </TableCell>
-                                     <TableCell>{func.type}</TableCell>
-                  <TableCell>{func.line_count}</TableCell>
-                  <TableCell>
-                    {func.is_algorithm ? (
-                      <Badge variant="default" className="bg-green-600">
-                        Algorithm ({func.algorithm_score.toFixed(1)})
-                      </Badge>
-                    ) : (
-                      <Badge variant="secondary">Function</Badge>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+            
+            {/* Type Filter */}
+            <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value as FilterType)}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <Filter className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Filter by type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Functions</SelectItem>
+                <SelectItem value="algorithm">Algorithms Only</SelectItem>
+                <SelectItem value="regular">Regular Functions</SelectItem>
+              </SelectContent>
+            </Select>
 
-          {pagination.page < pagination.total_pages && !searchTerm && (
-            <div className="mt-6 text-center">
-              <Button onClick={handleLoadMore} disabled={loadingMore}>
+            {/* Language Filter */}
+            {availableLanguages.length > 0 && (
+              <Select value={languageFilter} onValueChange={(value) => setLanguageFilter(value as LanguageFilter)}>
+                <SelectTrigger className="w-full sm:w-[160px]">
+                  <SelectValue placeholder="Language" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Languages</SelectItem>
+                  {availableLanguages.map((lang) => (
+                    <SelectItem key={lang} value={lang}>
+                      <div className="flex items-center">
+                        <div className={`w-3 h-3 rounded-full mr-2 ${getLanguageColor(lang)}`} />
+                        {lang}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Scrollable Table Container - Takes remaining space */}
+      <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <div className="h-full overflow-auto">
+            <Table>
+              <TableHeader className="sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-10">
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>File</TableHead>
+                  <TableHead>Language</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Lines</TableHead>
+                  <TableHead>Algorithm Score</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredFunctions.map((func) => (
+                  <TableRow key={func.id}>
+                    <TableCell className="font-medium">{func.name}</TableCell>
+                    <TableCell className="text-muted-foreground max-w-[300px] truncate">
+                      {getCleanPath(func.file_analyses.file_path)}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={`${getLanguageColor(func.file_analyses.language)} text-white`}>
+                        {func.file_analyses.language}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={func.algorithm_score > 0.5 ? "default" : "secondary"}>
+                        {func.algorithm_score > 0.5 ? "Algorithm" : "Function"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{func.line_count}</TableCell>
+                    <TableCell>
+                      <span className={func.algorithm_score > 0.5 ? "font-semibold text-primary" : ""}>
+                        {func.algorithm_score.toFixed(2)}
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+
+        {/* Load More Button - Fixed at bottom */}
+        {pagination.page < pagination.total_pages && (
+          <div className="border-t p-4 bg-background shrink-0">
+            <div className="text-center">
+              <Button onClick={handleLoadMore} disabled={loadingMore} variant="outline">
                 {loadingMore ? 'Loading...' : 'Load More'}
               </Button>
             </div>
-          )}
-        </CardContent>
+          </div>
+        )}
       </Card>
-    );
-  };
-
-  return (
-    <div className="flex flex-1 flex-col overflow-y-auto p-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">Function Analysis</h1>
-        <p className="text-muted-foreground">
-          Detailed analysis of all functions detected in the repository
-        </p>
-      </div>
-      {renderContent()}
-    </div>
+    </main>
   );
 } 

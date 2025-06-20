@@ -224,9 +224,9 @@ class DatabaseService:
     async def get_repository_analysis(self, repository_id: int) -> Optional[Dict[str, Any]]:
         """Get complete repository analysis data"""
         try:
-            # Get repository with latest analysis session
+            # Get repository data
             repo_result = self.supabase.table("repositories").select(
-                "*, analysis_sessions(*), file_counts(*)"
+                "id, name, github_url, directory_tree, file_contents, total_characters, created_at, updated_at"
             ).eq("id", repository_id).execute()
             
             if not repo_result.data:
@@ -235,8 +235,18 @@ class DatabaseService:
             repo_data = repo_result.data[0]
             
             # Get latest analysis session
-            if repo_data.get("analysis_sessions"):
-                latest_session = max(repo_data["analysis_sessions"], key=lambda x: x["created_at"])
+            session_result = self.supabase.table("analysis_sessions").select(
+                "*"
+            ).eq("repository_id", repository_id).order("created_at", desc=True).limit(1).execute()
+            
+            latest_session = session_result.data[0] if session_result.data else None
+            
+            # Get file analyses with functions if session exists
+            file_analyses = []
+            functions = []
+            language_stats = []
+            
+            if latest_session:
                 session_id = latest_session["id"]
                 
                 # Get file analyses with functions
@@ -244,15 +254,37 @@ class DatabaseService:
                     "*, functions(*, ai_analyses(*))"
                 ).eq("analysis_session_id", session_id).execute()
                 
+                file_analyses = files_result.data or []
+                
+                # Flatten functions from file analyses
+                for file_analysis in file_analyses:
+                    if file_analysis.get("functions"):
+                        functions.extend(file_analysis["functions"])
+                
                 # Get language stats
                 lang_result = self.supabase.table("language_stats").select(
                     "*"
                 ).eq("analysis_session_id", session_id).execute()
                 
-                repo_data["file_analyses"] = files_result.data or []
-                repo_data["language_stats"] = lang_result.data or []
+                language_stats = lang_result.data or []
             
-            return repo_data
+            # Return structured response that matches frontend expectations
+            return {
+                "repository": {
+                    "id": str(repo_data["id"]),  # Convert to string for frontend consistency
+                    "name": repo_data["name"],
+                    "githubUrl": repo_data["github_url"],
+                    "directoryTree": repo_data.get("directory_tree", ""),
+                    "fileContents": repo_data.get("file_contents", ""),
+                    "totalCharacters": repo_data.get("total_characters", 0),
+                    "createdAt": repo_data["created_at"],
+                    "updatedAt": repo_data["updated_at"]
+                },
+                "analysisSession": latest_session,
+                "fileAnalyses": file_analyses,
+                "functions": functions,
+                "languageStats": language_stats
+            }
         except Exception as e:
             print(f"Error getting repository analysis: {e}")
             return None

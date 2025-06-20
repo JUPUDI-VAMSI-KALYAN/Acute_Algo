@@ -2,7 +2,7 @@
 
 import { type LucideIcon } from "lucide-react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useSearchParams } from "next/navigation"
 import { memo } from "react"
 
 import {
@@ -33,6 +33,10 @@ export const NavMain = memo(function NavMain({
   title,
 }: NavMainProps) {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
+  
+  // Get current repository ID to preserve it in navigation
+  const currentRepo = searchParams.get('repo')
   
   return (
     <SidebarGroup>
@@ -42,6 +46,9 @@ export const NavMain = memo(function NavMain({
           const isActive = pathname === item.url;
           const IconComponent = item.icon;
           
+          // Preserve repository parameter in navigation URLs
+          const href = currentRepo ? `${item.url}?repo=${currentRepo}` : item.url;
+          
           return (
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton
@@ -49,7 +56,7 @@ export const NavMain = memo(function NavMain({
                 tooltip={item.title}
                 isActive={isActive}
               >
-                <Link href={item.url}>
+                <Link href={href}>
                   {IconComponent && <IconComponent />}
                   <span>{item.title}</span>
                 </Link>
