@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { AnalysisData } from '../../lib/api';
-import { RepositoryHeader } from './RepositoryHeader';
 import { OverviewDashboard } from './OverviewDashboard';
 import { FunctionAnalysis } from './FunctionAnalysis';
 import { FileStructure } from './FileStructure';
@@ -14,17 +13,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 interface DashboardLayoutProps {
   data: AnalysisData;
   onReset: () => void;
-  onRescan?: (data: AnalysisData) => void;
-  onError?: (error: string) => void;
-  githubUrl?: string;
 }
 
 const DashboardContent: React.FC<DashboardLayoutProps> = ({
   data,
-  onReset,
-  onRescan,
-  onError,
-  githubUrl
 }) => {
   const [activeTab, setActiveTab] = useState('overview');
   const { selectedFunction, setSelectedFunction } = useChatContext();
@@ -41,14 +33,6 @@ const DashboardContent: React.FC<DashboardLayoutProps> = ({
   return (
     <div className="h-screen bg-gray-50 flex overflow-hidden">
       <div className="flex-1 flex flex-col overflow-hidden">
-        <RepositoryHeader
-          data={data}
-          onReset={onReset}
-          onRescan={onRescan}
-          onError={onError}
-          githubUrl={githubUrl}
-        />
-        
         <main className="flex-1 overflow-auto p-6">
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
             <TabsList>

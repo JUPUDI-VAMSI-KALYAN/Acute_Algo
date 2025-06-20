@@ -2,174 +2,93 @@
 
 import * as React from "react"
 import {
-  AudioWaveform,
-  BookOpen,
-  Bot,
-  Command,
-  Frame,
-  GalleryVerticalEnd,
-  Map,
-  PieChart,
-  Settings2,
-  SquareTerminal,
+  LayoutDashboard,
+  Code,
+  PlayCircle,
+  Settings,
+  HelpCircle,
+  MessageSquare
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
-import { NavProjects } from "@/components/nav-projects"
 import { NavUser } from "@/components/nav-user"
-import { TeamSwitcher } from "@/components/team-switcher"
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
-  SidebarRail,
+  useSidebar,
 } from "@/components/ui/sidebar"
+import { Separator } from "./ui/separator"
+import { Button } from "./ui/button"
 
-// This is sample data.
 const data = {
   user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
+    name: "Vamsi",
+    email: "vamsi@acme.com",
+    avatar: "/avatars/shadcn.jpg", // Replace with actual path or dynamic value
   },
-  teams: [
-    {
-      name: "Acme Inc",
-      logo: GalleryVerticalEnd,
-      plan: "Enterprise",
-    },
-    {
-      name: "Acme Corp.",
-      logo: AudioWaveform,
-      plan: "Startup",
-    },
-    {
-      name: "Evil Corp.",
-      logo: Command,
-      plan: "Free",
-    },
-  ],
   navMain: [
     {
-      title: "Playground",
-      url: "#",
-      icon: SquareTerminal,
+      title: "Overview",
+      url: "/dashboard",
+      icon: LayoutDashboard,
       isActive: true,
-      items: [
-        {
-          title: "History",
-          url: "#",
-        },
-        {
-          title: "Starred",
-          url: "#",
-        },
-        {
-          title: "Settings",
-          url: "#",
-        },
-      ],
     },
     {
-      title: "Models",
-      url: "#",
-      icon: Bot,
-      items: [
-        {
-          title: "Genesis",
-          url: "#",
-        },
-        {
-          title: "Explorer",
-          url: "#",
-        },
-        {
-          title: "Quantum",
-          url: "#",
-        },
-      ],
+      title: "Algorithms",
+      url: "/dashboard/algorithms",
+      icon: Code,
     },
     {
-      title: "Documentation",
-      url: "#",
-      icon: BookOpen,
-      items: [
-        {
-          title: "Introduction",
-          url: "#",
-        },
-        {
-          title: "Get Started",
-          url: "#",
-        },
-        {
-          title: "Tutorials",
-          url: "#",
-        },
-        {
-          title: "Changelog",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Settings",
-      url: "#",
-      icon: Settings2,
-      items: [
-        {
-          title: "General",
-          url: "#",
-        },
-        {
-          title: "Team",
-          url: "#",
-        },
-        {
-          title: "Billing",
-          url: "#",
-        },
-        {
-          title: "Limits",
-          url: "#",
-        },
-      ],
+      title: "Playground",
+      url: "/dashboard/playground",
+      icon: PlayCircle,
     },
   ],
-  projects: [
+  navSecondary: [
     {
-      name: "Design Engineering",
-      url: "#",
-      icon: Frame,
+      title: "Settings",
+      url: "/dashboard/settings",
+      icon: Settings,
     },
     {
-      name: "Sales & Marketing",
-      url: "#",
-      icon: PieChart,
+      title: "Support",
+      url: "/dashboard/support",
+      icon: HelpCircle,
     },
     {
-      name: "Travel",
-      url: "#",
-      icon: Map,
+      title: "Feedback",
+      url: "/dashboard/feedback",
+      icon: MessageSquare,
     },
   ],
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { state } = useSidebar()
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <TeamSwitcher teams={data.teams} />
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" className="h-12 w-12">
+            <Code className="h-7 w-7" />
+          </Button>
+          {state === "expanded" && (
+            <h1 className="text-2xl font-serif font-bold">Acute Algo</h1>
+          )}
+        </div>
       </SidebarHeader>
-      <SidebarContent>
-        <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
+      <SidebarContent className="flex flex-col">
+        <NavMain items={data.navMain} title="Platform" />
+        <div className="mt-auto">
+          <NavMain items={data.navSecondary} />
+        </div>
       </SidebarContent>
       <SidebarFooter>
+        <Separator className="my-2" />
         <NavUser user={data.user} />
       </SidebarFooter>
-      <SidebarRail />
     </Sidebar>
   )
 }
