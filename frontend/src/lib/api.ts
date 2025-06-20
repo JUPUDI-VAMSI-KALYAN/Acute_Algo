@@ -36,6 +36,7 @@ export interface AIAnalysisData {
   optimizationSuggestions: string[];
   potentialIssues: string[];
   analysisTimestamp?: string;
+  analysis?: string;
 }
 
 export interface FunctionInfo {

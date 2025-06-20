@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { AnalysisData } from '../../lib/api';
-import { Sidebar } from './Sidebar';
 import { RepositoryHeader } from './RepositoryHeader';
 import { OverviewDashboard } from './OverviewDashboard';
 import { FunctionAnalysis } from './FunctionAnalysis';
@@ -10,6 +9,7 @@ import { FileStructure } from './FileStructure';
 import { CodeViewer } from './CodeViewer';
 import ChatAssistant from '../ChatAssistant';
 import { ChatProvider, useChatContext } from '../../contexts/ChatContext';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface DashboardLayoutProps {
   data: AnalysisData;
@@ -19,8 +19,6 @@ interface DashboardLayoutProps {
   githubUrl?: string;
 }
 
-export type DashboardTab = 'overview' | 'functions' | 'structure' | 'code';
-
 const DashboardContent: React.FC<DashboardLayoutProps> = ({
   data,
   onReset,
@@ -28,43 +26,21 @@ const DashboardContent: React.FC<DashboardLayoutProps> = ({
   onError,
   githubUrl
 }) => {
-  const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
+  const [activeTab, setActiveTab] = useState('overview');
   const { selectedFunction, setSelectedFunction } = useChatContext();
 
-  // Clear selected function when switching to non-function tabs
-  const handleTabChange = (tab: DashboardTab) => {
+  const handleTabChange = (tab: string) => {
     setActiveTab(tab);
     if (tab !== 'functions') {
       setSelectedFunction(null);
     }
   };
 
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'overview':
-        return <OverviewDashboard data={data} />;
-      case 'functions':
-        return <FunctionAnalysis data={data} />;
-      case 'structure':
-        return <FileStructure data={data} />;
-      case 'code':
-        return <CodeViewer analysisData={data} />;
-      default:
-        return <OverviewDashboard data={data} />;
-    }
-  };
-
-  // Only show function info when on functions tab and a function is selected
   const shouldShowFunctionInfo = activeTab === 'functions' && selectedFunction;
 
   return (
     <div className="h-screen bg-gray-50 flex overflow-hidden">
-      {/* Sidebar */}
-      <Sidebar activeTab={activeTab} onTabChange={handleTabChange} />
-      
-      {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
         <RepositoryHeader
           data={data}
           onReset={onReset}
@@ -73,13 +49,30 @@ const DashboardContent: React.FC<DashboardLayoutProps> = ({
           githubUrl={githubUrl}
         />
         
-        {/* Content Area */}
         <main className="flex-1 overflow-auto p-6">
-          {renderContent()}
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+            <TabsList>
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="functions">Functions</TabsTrigger>
+              <TabsTrigger value="structure">File Structure</TabsTrigger>
+              <TabsTrigger value="code">Code Viewer</TabsTrigger>
+            </TabsList>
+            <TabsContent value="overview">
+              <OverviewDashboard data={data} />
+            </TabsContent>
+            <TabsContent value="functions">
+              <FunctionAnalysis data={data} />
+            </TabsContent>
+            <TabsContent value="structure">
+              <FileStructure data={data} />
+            </TabsContent>
+            <TabsContent value="code">
+              <CodeViewer analysisData={data} />
+            </TabsContent>
+          </Tabs>
         </main>
       </div>
 
-      {/* Chat Assistant - Context-aware based on current tab and selection */}
       <ChatAssistant 
         functionInfo={shouldShowFunctionInfo ? {
           name: selectedFunction.name,
@@ -89,7 +82,7 @@ const DashboardContent: React.FC<DashboardLayoutProps> = ({
           name: data.repositoryName,
           totalFunctions: data.functionAnalysis?.totalFunctions || 0,
           languages: data.functionAnalysis?.languages ? Object.keys(data.functionAnalysis.languages) : [],
-          structure: data.directoryTree.substring(0, 1000) // Limit structure size to avoid large payloads
+          structure: data.directoryTree.substring(0, 1000)
         }}
       />
     </div>
