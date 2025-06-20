@@ -7,11 +7,12 @@ interface RepositoryInputProps {
 }
 
 const exampleRepos = [
-  'facebook/react',
-  'microsoft/vscode',
-  'vercel/next.js',
-  'python/cpython',
-  'rust-lang/rust'
+  'facebook/create-react-app',
+  'hyperopt/hyperopt',
+  'automl/auto-sklearn',
+  'coin-or/pulp',
+  'hudson-and-thames/mlfinlab',
+  'ahmedfgad/GeneticAlgorithmPython'
 ];
 
 export const RepositoryInput: React.FC<RepositoryInputProps> = ({ 
