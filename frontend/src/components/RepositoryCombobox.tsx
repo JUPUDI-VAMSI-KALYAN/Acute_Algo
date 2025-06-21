@@ -53,7 +53,7 @@ export function RepositoryCombobox({
     fetchRepositories()
   }, [])
 
-  // Initialize selected repository from URL params (only once)
+  // Initialize selected repository from URL params or auto-select first repository (only once)
   React.useEffect(() => {
     if (repositories.length > 0 && !initRef.current) {
       initRef.current = true
@@ -62,11 +62,26 @@ export function RepositoryCombobox({
       const currentRepoId = value || repoFromUrl
       
       if (currentRepoId) {
+        // Select repository from URL/props
         const repo = repositories.find(r => r.id === currentRepoId)
         setSelectedRepo(repo || null)
+      } else {
+        // Auto-select the first repository (most recent) for MVP
+        const defaultRepo = repositories[0]
+        if (defaultRepo) {
+          setSelectedRepo(defaultRepo)
+          
+          // Call parent callback if provided
+          if (onValueChange) {
+            onValueChange(defaultRepo.id)
+          }
+          
+          // Navigate to dashboard with the default repository
+          router.push(`/dashboard?repo=${defaultRepo.id}`)
+        }
       }
     }
-  }, [repositories, value, searchParams])
+  }, [repositories, value, searchParams, onValueChange, router])
 
   const fetchRepositories = async () => {
     try {
@@ -100,8 +115,6 @@ export function RepositoryCombobox({
   const formatDisplayText = (repo: Repository) => {
     return repo.name.length > 25 ? `${repo.name.substring(0, 25)}...` : repo.name
   }
-
-
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
