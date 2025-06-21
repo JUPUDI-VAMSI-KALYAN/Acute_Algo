@@ -31,7 +31,14 @@ export function PlaygroundChat() {
 
   useEffect(() => {
     if (messages.length === 0) {
-      const welcomeMessage = `Hi! I'm your AI coding assistant. Ask me anything about algorithms!`;
+      const welcomeMessage = `Hi! I'm Acute AI, your coding assistant and editor. I can help you with:
+
+• **Code Analysis** - Analyze algorithms, complexity, and performance
+• **Code Editing** - Modify, optimize, and improve your code
+• **Algorithm Questions** - Explain concepts, suggest alternatives
+• **Code Generation** - Create new algorithms and functions
+
+Just ask me anything about your code or algorithms! You can reference the code in the editor on the right.`;
       setMessages([{
         id: Date.now().toString(),
         text: welcomeMessage,
@@ -123,20 +130,32 @@ export function PlaygroundChat() {
             e.preventDefault();
             handleSendMessage(inputText);
           }}
-          className="flex gap-2"
+          className="relative"
         >
           <Textarea
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            placeholder="Type your message here."
-            className="flex-1 text-foreground"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSendMessage(inputText);
+              }
+            }}
+            placeholder="Type your message here. Press Enter to send, Shift+Enter for new line."
+            className="w-full pr-12 text-foreground"
             disabled={isLoading}
           />
-          <Button type="submit" disabled={isLoading}>
-            {isLoading ? 'Thinking...' : 'Send'}
-          </Button>
+          <button
+            type="submit"
+            disabled={isLoading || !inputText.trim()}
+            className="absolute right-3 top-3 p-1 text-blue-600 hover:text-blue-700 disabled:text-gray-300 disabled:cursor-not-allowed transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
+          </button>
         </form>
       </div>
     </div>
   );
-} 
+}

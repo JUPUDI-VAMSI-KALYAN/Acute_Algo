@@ -346,7 +346,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ functionInfo, repositoryI
 
           {/* Input Area */}
           <div className="p-4 border-t border-gray-200">
-            <div className="flex space-x-2">
+            <div className="relative">
               <input
                 type="text"
                 value={inputText}
@@ -358,15 +358,15 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ functionInfo, repositoryI
                   }
                 }}
                 placeholder="Ask about this function..."
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                 disabled={isLoading}
               />
               <button
                 onClick={() => handleSendMessage(inputText)}
                 disabled={!inputText.trim() || isLoading}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center"
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 text-blue-600 hover:text-blue-700 disabled:text-gray-300 disabled:cursor-not-allowed transition-colors"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                 </svg>
               </button>
@@ -378,4 +378,4 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ functionInfo, repositoryI
   );
 };
 
-export default ChatAssistant; 
+export default ChatAssistant;
