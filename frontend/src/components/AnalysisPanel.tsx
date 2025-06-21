@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Badge } from './ui/badge';
 import { Progress } from './ui/progress';
 import { Button } from './ui/button';
-import { ChevronLeft, ChevronRight, BarChart3, AlertCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, BarChart3 } from 'lucide-react';
 import { useChatContext } from '../contexts/ChatContext';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';

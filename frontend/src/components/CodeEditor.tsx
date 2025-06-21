@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Textarea } from './ui/textarea';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -8,15 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { useChatContext } from '../contexts/ChatContext';
 import { Code2, Loader2 } from 'lucide-react';
 
-
-export function CodeEditor() {
-  const { selectedAlgorithm } = useChatContext();
-  const [code, setCode] = useState('');
-  const [language, setLanguage] = useState('javascript');
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Default welcome message
-  const defaultCode = `// 🚀 Welcome to the Algorithm Playground Code Editor!
+// Default welcome message
+const defaultCode = `// 🚀 Welcome to the Algorithm Playground Code Editor!
 //
 // 📋 How to get started:
 // 1. Type @ in the chat to browse and select algorithms from your repository
@@ -54,21 +47,19 @@ console.log(\`Target \${targetValue} found at index: \${result}\`);
 
 // 🎯 Try selecting an algorithm with @ in the chat to see real code!`;
 
-  useEffect(() => {
-    if (selectedAlgorithm?.algorithm) {
-      loadAlgorithmCode();
-    } else {
-      setCode(defaultCode);
-    }
-  }, [selectedAlgorithm]);
+export function CodeEditor() {
+  const { selectedAlgorithm } = useChatContext();
+  const [code, setCode] = useState('');
+  const [language, setLanguage] = useState('javascript');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const loadAlgorithmCode = async () => {
+  const loadAlgorithmCode = useCallback(async () => {
     if (!selectedAlgorithm?.algorithm) return;
     
     setIsLoading(true);
     try {
       // Extract the file path from the algorithm's file_analyses
-      const fileAnalysis = selectedAlgorithm.algorithm.file_analyses?.[0];
+      const fileAnalysis = selectedAlgorithm.algorithm.file_analyses;
       if (fileAnalysis?.file_path) {
         // In a real implementation, you would fetch the file content from the backend
         // For now, we'll show the algorithm information
@@ -112,105 +103,148 @@ ${selectedAlgorithm.aiAnalysis.pseudocode}
           case 'cxx':
             setLanguage('cpp');
             break;
+          case 'c':
+            setLanguage('c');
+            break;
+          case 'go':
+            setLanguage('go');
+            break;
+          case 'rs':
+            setLanguage('rust');
+            break;
+          case 'rb':
+            setLanguage('ruby');
+            break;
+          case 'php':
+            setLanguage('php');
+            break;
+          case 'cs':
+            setLanguage('csharp');
+            break;
+          case 'swift':
+            setLanguage('swift');
+            break;
+          case 'kt':
+            setLanguage('kotlin');
+            break;
+          case 'scala':
+            setLanguage('scala');
+            break;
           default:
-            setLanguage('javascript');
+            setLanguage('text');
         }
       }
     } catch (error) {
       console.error('Error loading algorithm code:', error);
-      setCode(`// Error loading algorithm code
-// ${error}`);
+      setCode('// Error loading algorithm code');
     } finally {
       setIsLoading(false);
     }
+  }, [selectedAlgorithm]);
+
+  useEffect(() => {
+    if (selectedAlgorithm?.algorithm) {
+      loadAlgorithmCode();
+    } else {
+      setCode(defaultCode);
+    }
+  }, [selectedAlgorithm, loadAlgorithmCode]);
+
+  const handleRunCode = () => {
+    // This would integrate with a code execution service
+    console.log('Running code:', code);
+    alert('Code execution would be implemented here!');
   };
 
-
-
   const handleFormatCode = () => {
-    // TODO: Implement code formatting
-    console.log('Formatting code...');
+    // Basic formatting - in a real app, you'd use a proper formatter
+    try {
+      if (language === 'javascript' || language === 'typescript') {
+        // Very basic JS formatting
+        const formatted = code
+          .split('\n')
+          .map(line => line.trim())
+          .join('\n');
+        setCode(formatted);
+      }
+    } catch (error) {
+      console.error('Error formatting code:', error);
+    }
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <Card className="flex-1 flex flex-col">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Code2 className="h-5 w-5" />
-              <CardTitle className="text-lg">
-                {selectedAlgorithm?.algorithm ? 
-                  `${selectedAlgorithm.algorithm.name} - Code` : 
-                  'Code Editor'
-                }
-              </CardTitle>
-              {isLoading && (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              )}
-            </div>
-            <div className="flex gap-2">
-              <Select value={language} onValueChange={setLanguage}>
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="javascript">JavaScript</SelectItem>
-                  <SelectItem value="python">Python</SelectItem>
-                  <SelectItem value="java">Java</SelectItem>
-                  <SelectItem value="cpp">C++</SelectItem>
-                  <SelectItem value="typescript">TypeScript</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button onClick={handleFormatCode} variant="outline" size="sm">
-                Format Code
-              </Button>
-            </div>
+    <Card className="h-full flex flex-col">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Code2 className="h-5 w-5" />
+            Code Editor
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <Select value={language} onValueChange={setLanguage}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="javascript">JavaScript</SelectItem>
+                <SelectItem value="typescript">TypeScript</SelectItem>
+                <SelectItem value="python">Python</SelectItem>
+                <SelectItem value="java">Java</SelectItem>
+                <SelectItem value="cpp">C++</SelectItem>
+                <SelectItem value="c">C</SelectItem>
+                <SelectItem value="go">Go</SelectItem>
+                <SelectItem value="rust">Rust</SelectItem>
+                <SelectItem value="ruby">Ruby</SelectItem>
+                <SelectItem value="php">PHP</SelectItem>
+                <SelectItem value="csharp">C#</SelectItem>
+                <SelectItem value="swift">Swift</SelectItem>
+                <SelectItem value="kotlin">Kotlin</SelectItem>
+                <SelectItem value="scala">Scala</SelectItem>
+                <SelectItem value="text">Plain Text</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        </CardHeader>
-        <CardContent className="flex-1 flex flex-col p-4">
-          {!selectedAlgorithm?.algorithm && !isLoading ? (
-              <div className="flex-1 flex flex-col">
-                <div className="flex-1 bg-muted/30 rounded-lg p-6 border-2 border-dashed border-border">
-                  <div className="h-full flex flex-col">
-                    <div className="flex items-center justify-center mb-4">
-                      <div className="bg-muted p-3 rounded-full">
-                        <Code2 className="h-8 w-8 text-muted-foreground" />
-                      </div>
-                    </div>
-                    <div className="text-center mb-6">
-                      <h3 className="text-lg font-semibold mb-2">
-                        Ready to Code?
-                      </h3>
-                      <p className="text-muted-foreground text-sm max-w-md mx-auto">
-                        Use <span className="bg-muted px-2 py-1 rounded font-mono text-xs">@</span> in chat to load algorithms, or start coding below.
-                      </p>
-                    </div>
-                    <div className="flex-1">
-                      <Textarea
-                        value={code}
-                        onChange={(e) => setCode(e.target.value)}
-                        placeholder="// Start coding your algorithm here..."
-                        className="h-full font-mono text-sm resize-none border-0 bg-background shadow-sm"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <Textarea
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                placeholder={selectedAlgorithm?.algorithm ? 
-                  "Loading algorithm code..." : 
-                  "Select an algorithm using @ in the chat or write your own code here..."
-                }
-                className="flex-1 font-mono text-sm resize-none h-full"
-                disabled={isLoading}
-              />
-            )}
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </CardHeader>
+      <CardContent className="flex-1 flex flex-col p-0">
+        <div className="flex-1 relative">
+          {isLoading && (
+            <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-10">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          )}
+          <Textarea
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            placeholder="Write your code here..."
+            className="h-full min-h-[400px] resize-none font-mono text-sm border-0 rounded-none focus:ring-0"
+            style={{ fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace' }}
+          />
+        </div>
+        <div className="border-t p-3 bg-muted/30">
+          <div className="flex gap-2">
+            <Button
+              onClick={handleRunCode}
+              size="sm"
+              className="flex items-center gap-2"
+              disabled={isLoading}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h1m4 0h1m6-10V4a2 2 0 00-2-2H5a2 2 0 00-2 2v16l4-2 4 2 4-2 4 2V4z" />
+              </svg>
+              Run Code
+            </Button>
+            <Button
+              onClick={handleFormatCode}
+              variant="outline"
+              size="sm"
+              disabled={isLoading}
+            >
+              Format
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

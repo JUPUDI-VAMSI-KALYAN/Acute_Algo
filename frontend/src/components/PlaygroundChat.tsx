@@ -20,7 +20,7 @@ export interface PlaygroundChatRef {
 }
 
 const PlaygroundChat = forwardRef<PlaygroundChatRef>((props, ref) => {
-  const { currentRepository, selectedAlgorithm, setSelectedAlgorithm } = useChatContext();
+  const { currentRepository, setSelectedAlgorithm } = useChatContext();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -28,7 +28,7 @@ const PlaygroundChat = forwardRef<PlaygroundChatRef>((props, ref) => {
   const [algorithmSuggestions, setAlgorithmSuggestions] = useState<AlgorithmFunction[]>([]);
   const [mentionStartIndex, setMentionStartIndex] = useState(-1);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isLoadingAlgorithm, setIsLoadingAlgorithm] = useState(false);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -96,7 +96,6 @@ const PlaygroundChat = forwardRef<PlaygroundChatRef>((props, ref) => {
   };
 
   const loadAlgorithmDetails = async (algorithm: AlgorithmFunction) => {
-    setIsLoadingAlgorithm(true);
     try {
       // Fetch AI analysis for the algorithm
       const analysisData = await getAlgorithmWithAIAnalysis(algorithm.id);
@@ -117,8 +116,6 @@ const PlaygroundChat = forwardRef<PlaygroundChatRef>((props, ref) => {
         aiAnalysis: undefined,
         code: undefined
       });
-    } finally {
-      setIsLoadingAlgorithm(false);
     }
   };
 

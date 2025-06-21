@@ -120,8 +120,15 @@ function DashboardContent({
         {children}
       </SidebarInset>
       <ChatAssistant 
-        repositoryInfo={analysisData?.repositoryName}
-        functionInfo={analysisData?.functionAnalysis ? `${analysisData.functionAnalysis.totalFunctions} functions, ${analysisData.functionAnalysis.totalAlgorithms} algorithms` : undefined}
+        repositoryInfo={analysisData?.repositoryName ? {
+          name: analysisData.repositoryName,
+          totalFunctions: analysisData.functionAnalysis?.totalFunctions || 0,
+          languages: analysisData.functionAnalysis?.languages ? Object.keys(analysisData.functionAnalysis.languages) : [],
+          structure: analysisData.directoryTree
+        } : null}
+        functionInfo={analysisData?.functionAnalysis ? {
+          name: `${analysisData.functionAnalysis.totalFunctions} functions, ${analysisData.functionAnalysis.totalAlgorithms} algorithms`
+        } : null}
       />
     </SidebarProvider>
   );
