@@ -341,3 +341,122 @@ class ComprehensiveAnalysisResult(BaseModel):
     )
 
     model_config = ConfigDict(populate_by_name=True)
+
+
+# Feedback Models
+class FeedbackRequest(BaseModel):
+    """Request model for submitting feedback"""
+    
+    name: str = Field(..., alias="name", description="User's name")
+    email: str = Field(..., alias="email", description="User's email")
+    category: str = Field(..., alias="category", description="Feedback category")
+    subject: str = Field(..., alias="subject", description="Feedback subject")
+    message: str = Field(..., alias="message", description="Feedback message")
+    rating: Optional[int] = Field(None, alias="rating", description="Rating 1-5")
+    allow_contact: bool = Field(True, alias="allowContact", description="Allow contact permission")
+    
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class FeedbackResponse(BaseModel):
+    """Response model for feedback submission"""
+    
+    success: bool = Field(default=True, alias="success")
+    message: str = Field(..., alias="message")
+    feedback_id: Optional[int] = Field(None, alias="feedbackId")
+    
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class FeedbackItem(BaseModel):
+    """Model for feedback item"""
+    
+    id: int = Field(..., alias="id")
+    name: str = Field(..., alias="name")
+    email: str = Field(..., alias="email")
+    category: str = Field(..., alias="category")
+    subject: str = Field(..., alias="subject")
+    message: str = Field(..., alias="message")
+    rating: Optional[int] = Field(None, alias="rating")
+    allow_contact: bool = Field(..., alias="allowContact")
+    status: str = Field(..., alias="status")
+    priority: str = Field(..., alias="priority")
+    created_at: str = Field(..., alias="createdAt")
+    updated_at: str = Field(..., alias="updatedAt")
+    resolved_at: Optional[str] = Field(None, alias="resolvedAt")
+    admin_notes: Optional[str] = Field(None, alias="adminNotes")
+    upvote_count: int = Field(default=0, alias="upvoteCount")
+    is_public: bool = Field(default=False, alias="isPublic")
+    implementation_notes: Optional[str] = Field(None, alias="implementationNotes")
+    estimated_completion: Optional[str] = Field(None, alias="estimatedCompletion")
+    user_has_upvoted: Optional[bool] = Field(None, alias="userHasUpvoted")
+    recent_upvotes: Optional[int] = Field(None, alias="recentUpvotes")
+    
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class FeedbackListResponse(BaseModel):
+    """Response model for feedback list"""
+    
+    success: bool = Field(default=True, alias="success")
+    data: List[FeedbackItem] = Field(..., alias="data")
+    total: int = Field(..., alias="total")
+    page: int = Field(..., alias="page")
+    limit: int = Field(..., alias="limit")
+    total_pages: int = Field(..., alias="totalPages")
+    
+    model_config = ConfigDict(populate_by_name=True)
+
+
+# Upvote Models
+class UpvoteRequest(BaseModel):
+    """Request model for upvoting feedback"""
+    
+    user_identifier: str = Field(..., alias="userIdentifier", description="Unique user identifier")
+    user_email: Optional[str] = Field(None, alias="userEmail", description="User email (optional)")
+    user_name: Optional[str] = Field(None, alias="userName", description="User name (optional)")
+    
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class UpvoteResponse(BaseModel):
+    """Response model for upvote operations"""
+    
+    success: bool = Field(default=True, alias="success")
+    message: str = Field(..., alias="message")
+    upvote_count: int = Field(..., alias="upvoteCount")
+    user_has_upvoted: bool = Field(..., alias="userHasUpvoted")
+    
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class PublicFeatureRequest(BaseModel):
+    """Model for public feature requests"""
+    
+    id: int = Field(..., alias="id")
+    subject: str = Field(..., alias="subject")
+    message: str = Field(..., alias="message")
+    upvote_count: int = Field(..., alias="upvoteCount")
+    status: str = Field(..., alias="status")
+    priority: str = Field(..., alias="priority")
+    created_at: str = Field(..., alias="createdAt")
+    updated_at: str = Field(..., alias="updatedAt")
+    implementation_notes: Optional[str] = Field(None, alias="implementationNotes")
+    estimated_completion: Optional[str] = Field(None, alias="estimatedCompletion")
+    user_has_upvoted: Optional[bool] = Field(None, alias="userHasUpvoted")
+    recent_upvotes: Optional[int] = Field(None, alias="recentUpvotes")
+    
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class PublicFeatureListResponse(BaseModel):
+    """Response model for public feature requests list"""
+    
+    success: bool = Field(default=True, alias="success")
+    data: List[PublicFeatureRequest] = Field(..., alias="data")
+    total: int = Field(..., alias="total")
+    page: int = Field(..., alias="page")
+    limit: int = Field(..., alias="limit")
+    total_pages: int = Field(..., alias="totalPages")
+    
+    model_config = ConfigDict(populate_by_name=True)

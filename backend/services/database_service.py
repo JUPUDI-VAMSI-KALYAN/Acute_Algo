@@ -1,5 +1,6 @@
 import os
 from typing import Dict, List, Optional, Any
+from datetime import datetime, timedelta
 import asyncpg
 from supabase import create_client, Client
 from dotenv import load_dotenv
@@ -736,6 +737,545 @@ class DatabaseService:
         except Exception as e:
             print(f"Error getting repository files: {e}")
             return None
+
+    # Feedback operations
+    async def create_feedback(
+        self,
+        name: str,
+        email: str,
+        category: str,
+        subject: str,
+        message: str,
+        rating: Optional[int] = None,
+        allow_contact: bool = True,
+    ) -> Optional[int]:
+        """Create a new feedback record"""
+        try:
+            data = {
+                "name": name,
+                "email": email,
+                "category": category,
+                "subject": subject,
+                "message": message,
+                "allow_contact": allow_contact,
+                "status": "open",
+                "priority": "medium",
+                "upvote_count": 0,
+                # Automatically make feature requests public
+                "is_public": category == "feature",
+            }
+            
+            if rating is not None:
+                data["rating"] = rating
+            
+            result = (
+                self.supabase.table("feedback")
+                .insert(data)
+                .execute()
+            )
+            return result.data[0]["id"] if result.data else None
+        except Exception as e:
+            print(f"Error creating feedback: {e}")
+            return None
+
+    async def get_feedback_list(
+        self,
+        page: int = 1,
+        limit: int = 20,
+        category: Optional[str] = None,
+        status: Optional[str] = None,
+        priority: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Get paginated feedback list with filters"""
+        try:
+            # Build query
+            query = self.supabase.table("feedback").select("*")
+            
+            if category:
+                query = query.eq("category", category)
+            if status:
+                query = query.eq("status", status)
+            if priority:
+                query = query.eq("priority", priority)
+            
+            # Get total count for pagination
+            count_result = query.execute()
+            total = len(count_result.data) if count_result.data else 0
+            
+            # Apply pagination and ordering
+            offset = (page - 1) * limit
+            result = (
+                query.order("created_at", desc=True)
+                .range(offset, offset + limit - 1)
+                .execute()
+            )
+            
+            # Convert data to match the model
+            feedback_list = []
+            if result.data:
+                for item in result.data:
+                    feedback_item = {
+                        "id": item["id"],
+                        "name": item["name"],
+                        "email": item["email"],
+                        "category": item["category"],
+                        "subject": item["subject"],
+                        "message": item["message"],
+                        "rating": item.get("rating"),
+                        "allowContact": item["allow_contact"],
+                        "status": item["status"],
+                        "priority": item["priority"],
+                        "createdAt": item["created_at"],
+                        "updatedAt": item["updated_at"],
+                        "resolvedAt": item.get("resolved_at"),
+                        "adminNotes": item.get("admin_notes"),
+                    }
+                    feedback_list.append(feedback_item)
+            
+            total_pages = (total + limit - 1) // limit
+            
+            return {
+                "feedback": feedback_list,
+                "total": total,
+                "total_pages": total_pages,
+            }
+            
+        except Exception as e:
+            print(f"Error getting feedback list: {e}")
+            return {"feedback": [], "total": 0, "total_pages": 0}
+
+    async def get_feedback_by_id(self, feedback_id: int) -> Optional[Dict[str, Any]]:
+        """Get feedback by ID"""
+        try:
+            result = (
+                self.supabase.table("feedback")
+                .select("*")
+                .eq("id", feedback_id)
+                .execute()
+            )
+            
+            if result.data:
+                item = result.data[0]
+                return {
+                    "id": item["id"],
+                    "name": item["name"],
+                    "email": item["email"],
+                    "category": item["category"],
+                    "subject": item["subject"],
+                    "message": item["message"],
+                    "rating": item.get("rating"),
+                    "allowContact": item["allow_contact"],
+                    "status": item["status"],
+                    "priority": item["priority"],
+                    "createdAt": item["created_at"],
+                    "updatedAt": item["updated_at"],
+                    "resolvedAt": item.get("resolved_at"),
+                    "adminNotes": item.get("admin_notes"),
+                    "isPublic": item.get("is_public", False),
+                    "upvoteCount": item.get("upvote_count", 0),
+                    "implementationNotes": item.get("implementation_notes"),
+                    "estimatedCompletion": item.get("estimated_completion"),
+                }
+            return None
+            
+        except Exception as e:
+            print(f"Error getting feedback by ID: {e}")
+            return None
+
+    async def update_feedback_status(
+        self,
+        feedback_id: int,
+        status: str,
+        admin_notes: Optional[str] = None,
+    ) -> bool:
+        """Update feedback status"""
+        try:
+            update_data = {
+                "status": status,
+                "updated_at": "now()",
+            }
+            
+            if admin_notes:
+                update_data["admin_notes"] = admin_notes
+                
+            if status == "resolved":
+                update_data["resolved_at"] = "now()"
+            
+            result = (
+                self.supabase.table("feedback")
+                .update(update_data)
+                .eq("id", feedback_id)
+                .execute()
+            )
+            
+            return len(result.data) > 0 if result.data else False
+            
+        except Exception as e:
+            print(f"Error updating feedback status: {e}")
+            return False
+
+    async def update_feedback_priority(
+        self, feedback_id: int, priority: str
+    ) -> bool:
+        """Update feedback priority"""
+        try:
+            result = (
+                self.supabase.table("feedback")
+                .update({"priority": priority, "updated_at": "now()"})
+                .eq("id", feedback_id)
+                .execute()
+            )
+            
+            return len(result.data) > 0 if result.data else False
+            
+        except Exception as e:
+            print(f"Error updating feedback priority: {e}")
+            return False
+
+    async def get_feedback_stats(self) -> Dict[str, Any]:
+        """Get feedback statistics"""
+        try:
+            # Get all feedback
+            result = self.supabase.table("feedback").select("*").execute()
+            
+            if not result.data:
+                return {
+                    "total": 0,
+                    "by_category": {},
+                    "by_status": {},
+                    "by_priority": {},
+                    "average_rating": 0,
+                }
+            
+            feedback_list = result.data
+            total = len(feedback_list)
+            
+            # Count by category
+            by_category = {}
+            by_status = {}
+            by_priority = {}
+            total_rating = 0
+            rating_count = 0
+            
+            for item in feedback_list:
+                # Category stats
+                category = item["category"]
+                by_category[category] = by_category.get(category, 0) + 1
+                
+                # Status stats
+                status = item["status"]
+                by_status[status] = by_status.get(status, 0) + 1
+                
+                # Priority stats
+                priority = item["priority"]
+                by_priority[priority] = by_priority.get(priority, 0) + 1
+                
+                # Rating stats
+                if item.get("rating"):
+                    total_rating += item["rating"]
+                    rating_count += 1
+            
+            average_rating = total_rating / rating_count if rating_count > 0 else 0
+            
+            return {
+                "total": total,
+                "by_category": by_category,
+                "by_status": by_status,
+                "by_priority": by_priority,
+                "average_rating": round(average_rating, 2),
+            }
+            
+        except Exception as e:
+            print(f"Error getting feedback stats: {e}")
+            return {
+                "total": 0,
+                "by_category": {},
+                "by_status": {},
+                "by_priority": {},
+                "average_rating": 0,
+            }
+
+    # ===================== UPVOTING FUNCTIONALITY =====================
+    
+    async def add_upvote(
+        self,
+        feedback_id: int,
+        user_identifier: str,
+        user_email: Optional[str] = None,
+        user_name: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Add an upvote to a feedback item"""
+        try:
+            # Check if user already upvoted
+            existing_upvote = (
+                self.supabase.table("feedback_upvotes")
+                .select("*")
+                .eq("feedback_id", feedback_id)
+                .eq("user_identifier", user_identifier)
+                .execute()
+            )
+            
+            if existing_upvote.data:
+                return {
+                    "success": False,
+                    "message": "You have already upvoted this feature request",
+                    "upvote_count": None
+                }
+            
+            # Add upvote
+            upvote_data = {
+                "feedback_id": feedback_id,
+                "user_identifier": user_identifier,
+            }
+            
+            if user_email:
+                upvote_data["user_email"] = user_email
+            if user_name:
+                upvote_data["user_name"] = user_name
+            
+            result = (
+                self.supabase.table("feedback_upvotes")
+                .insert(upvote_data)
+                .execute()
+            )
+            
+            if result.data:
+                # Get updated upvote count
+                feedback_result = (
+                    self.supabase.table("feedback")
+                    .select("upvote_count")
+                    .eq("id", feedback_id)
+                    .execute()
+                )
+                
+                upvote_count = feedback_result.data[0]["upvote_count"] if feedback_result.data else 0
+                
+                return {
+                    "success": True,
+                    "message": "Upvote added successfully",
+                    "upvote_count": upvote_count
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": "Failed to add upvote",
+                    "upvote_count": None
+                }
+                
+        except Exception as e:
+            print(f"Error adding upvote: {e}")
+            return {
+                "success": False,
+                "message": "Failed to add upvote",
+                "upvote_count": None
+            }
+
+    async def remove_upvote(
+        self, feedback_id: int, user_identifier: str
+    ) -> Dict[str, Any]:
+        """Remove an upvote from a feedback item"""
+        try:
+            result = (
+                self.supabase.table("feedback_upvotes")
+                .delete()
+                .eq("feedback_id", feedback_id)
+                .eq("user_identifier", user_identifier)
+                .execute()
+            )
+            
+            if result.data:
+                # Get updated upvote count
+                feedback_result = (
+                    self.supabase.table("feedback")
+                    .select("upvote_count")
+                    .eq("id", feedback_id)
+                    .execute()
+                )
+                
+                upvote_count = feedback_result.data[0]["upvote_count"] if feedback_result.data else 0
+                
+                return {
+                    "success": True,
+                    "message": "Upvote removed successfully",
+                    "upvote_count": upvote_count
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": "Upvote not found",
+                    "upvote_count": None
+                }
+                
+        except Exception as e:
+            print(f"Error removing upvote: {e}")
+            return {
+                "success": False,
+                "message": "Failed to remove upvote",
+                "upvote_count": None
+            }
+
+    async def get_public_feature_requests(
+        self,
+        page: int = 1,
+        limit: int = 20,
+        sort: str = "upvotes",
+        status: Optional[str] = None,
+        user_identifier: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Get public feature requests with upvote information"""
+        try:
+            # Build base query
+            query = (
+                self.supabase.table("feedback")
+                .select("*")
+                .eq("category", "feature")
+                .eq("is_public", True)
+            )
+            
+            if status:
+                query = query.eq("status", status)
+            else:
+                # Default to show open and in_progress features
+                query = query.in_("status", ["open", "in_progress", "resolved"])
+            
+            # Apply sorting
+            if sort == "recent":
+                query = query.order("created_at", desc=True)
+            elif sort == "trending":
+                # For trending, we'll sort by upvote_count but filter recent
+                query = query.order("upvote_count", desc=True)
+            else:  # Default: upvotes
+                query = query.order("upvote_count", desc=True).order("created_at", desc=True)
+            
+            # Get total count for pagination
+            count_result = query.execute()
+            total = len(count_result.data) if count_result.data else 0
+            
+            # Apply pagination
+            offset = (page - 1) * limit
+            result = query.range(offset, offset + limit - 1).execute()
+            
+            # Convert data and check upvote status
+            features = []
+            if result.data:
+                for item in result.data:
+                    user_has_upvoted = False
+                    
+                    # Check if user has upvoted (if user_identifier provided)
+                    if user_identifier:
+                        upvote_check = (
+                            self.supabase.table("feedback_upvotes")
+                            .select("id")
+                            .eq("feedback_id", item["id"])
+                            .eq("user_identifier", user_identifier)
+                            .execute()
+                        )
+                        user_has_upvoted = len(upvote_check.data) > 0 if upvote_check.data else False
+                    
+                    # Get recent upvotes count (last 30 days)
+                    thirty_days_ago = (datetime.now() - timedelta(days=30)).isoformat()
+                    recent_upvotes_result = (
+                        self.supabase.table("feedback_upvotes")
+                        .select("id")
+                        .eq("feedback_id", item["id"])
+                        .gte("created_at", thirty_days_ago)
+                        .execute()
+                    )
+                    recent_upvotes = len(recent_upvotes_result.data) if recent_upvotes_result.data else 0
+                    
+                    feature = {
+                        "id": item["id"],
+                        "subject": item["subject"],
+                        "message": item["message"],
+                        "upvoteCount": item.get("upvote_count", 0),
+                        "status": item["status"],
+                        "priority": item["priority"],
+                        "createdAt": item["created_at"],
+                        "updatedAt": item["updated_at"],
+                        "implementationNotes": item.get("implementation_notes"),
+                        "estimatedCompletion": item.get("estimated_completion"),
+                        "userHasUpvoted": user_has_upvoted,
+                        "recentUpvotes": recent_upvotes,
+                    }
+                    features.append(feature)
+            
+            total_pages = (total + limit - 1) // limit
+            
+            return {
+                "features": features,
+                "total": total,
+                "total_pages": total_pages,
+            }
+            
+        except Exception as e:
+            print(f"Error getting public feature requests: {e}")
+            return {"features": [], "total": 0, "total_pages": 0}
+
+    async def get_trending_feature_requests(
+        self, limit: int = 10, user_identifier: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Get trending feature requests (most upvotes in last 30 days)"""
+        try:
+            # Use the trending view or raw query for better performance
+            result = (
+                self.supabase.table("feedback")
+                .select("*")
+                .eq("category", "feature")
+                .eq("is_public", True)
+                .in_("status", ["open", "in_progress"])
+                .order("upvote_count", desc=True)
+                .limit(limit)
+                .execute()
+            )
+            
+            features = []
+            if result.data:
+                for item in result.data:
+                    user_has_upvoted = False
+                    
+                    # Check if user has upvoted
+                    if user_identifier:
+                        upvote_check = (
+                            self.supabase.table("feedback_upvotes")
+                            .select("id")
+                            .eq("feedback_id", item["id"])
+                            .eq("user_identifier", user_identifier)
+                            .execute()
+                        )
+                        user_has_upvoted = len(upvote_check.data) > 0 if upvote_check.data else False
+                    
+                    # Get recent upvotes count
+                    thirty_days_ago = (datetime.now() - timedelta(days=30)).isoformat()
+                    recent_upvotes_result = (
+                        self.supabase.table("feedback_upvotes")
+                        .select("id")
+                        .eq("feedback_id", item["id"])
+                        .gte("created_at", thirty_days_ago)
+                        .execute()
+                    )
+                    recent_upvotes = len(recent_upvotes_result.data) if recent_upvotes_result.data else 0
+                    
+                    feature = {
+                        "id": item["id"],
+                        "subject": item["subject"],
+                        "message": item["message"],
+                        "upvoteCount": item.get("upvote_count", 0),
+                        "status": item["status"],
+                        "priority": item["priority"],
+                        "createdAt": item["created_at"],
+                        "updatedAt": item["updated_at"],
+                        "implementationNotes": item.get("implementation_notes"),
+                        "estimatedCompletion": item.get("estimated_completion"),
+                        "userHasUpvoted": user_has_upvoted,
+                        "recentUpvotes": recent_upvotes,
+                    }
+                    features.append(feature)
+            
+            return {"features": features}
+            
+        except Exception as e:
+            print(f"Error getting trending feature requests: {e}")
+            return {"features": []}
 
 
 # Global database service instance

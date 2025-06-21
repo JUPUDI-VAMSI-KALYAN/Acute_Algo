@@ -24,8 +24,8 @@ export const Header: React.FC = () => {
             <Link href="/dashboard" className="text-gray-300 hover:text-white transition-colors">
               Dashboard
             </Link>
-            <Link href="#features" className="text-gray-300 hover:text-white transition-colors">
-              Features
+            <Link href="/features" className="text-gray-300 hover:text-white transition-colors">
+              Feature Requests
             </Link>
             <Link href="#about" className="text-gray-300 hover:text-white transition-colors">
               About
@@ -81,11 +81,18 @@ export const Header: React.FC = () => {
       >
         <div className="px-2 pt-2 pb-3 space-y-1 bg-gray-900/95">
           <Link 
-            href="/pricing" 
+            href="/dashboard" 
             className="block px-3 py-2 text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700 rounded-md"
             onClick={() => setIsMobileMenuOpen(false)}
           >
-            Pricing
+            Dashboard
+          </Link>
+          <Link 
+            href="/features" 
+            className="block px-3 py-2 text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700 rounded-md"
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            Feature Requests
           </Link>
           <Link 
             href="/about" 
@@ -93,13 +100,6 @@ export const Header: React.FC = () => {
             onClick={() => setIsMobileMenuOpen(false)}
           >
             About
-          </Link>
-          <Link 
-            href="/docs" 
-            className="block px-3 py-2 text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700 rounded-md"
-            onClick={() => setIsMobileMenuOpen(false)}
-          >
-            Documentation
           </Link>
           <Link
             href="https://calendly.com/jupudivamsikalyan/30min"

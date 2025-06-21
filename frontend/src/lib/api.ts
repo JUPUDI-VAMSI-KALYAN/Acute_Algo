@@ -581,3 +581,290 @@ export interface AlgorithmFunction {
     language: string;
   };
 }
+
+// Feedback interfaces
+export interface FeedbackFormData {
+  name: string;
+  email: string;
+  category: string;
+  subject: string;
+  message: string;
+  rating: number;
+  allowContact: boolean;
+}
+
+export interface FeedbackResponse {
+  success: boolean;
+  message: string;
+  feedbackId?: number;
+}
+
+export interface FeedbackItem {
+  id: number;
+  name: string;
+  email: string;
+  category: string;
+  subject: string;
+  message: string;
+  rating?: number;
+  allowContact: boolean;
+  status: string;
+  priority: string;
+  createdAt: string;
+  updatedAt: string;
+  resolvedAt?: string;
+  adminNotes?: string;
+}
+
+export interface FeedbackListResponse {
+  success: boolean;
+  data: FeedbackItem[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface FeedbackStats {
+  total: number;
+  by_category: Record<string, number>;
+  by_status: Record<string, number>;
+  by_priority: Record<string, number>;
+  average_rating: number;
+}
+
+// ===================== FEEDBACK API FUNCTIONS =====================
+
+export const submitFeedback = async (feedbackData: FeedbackFormData): Promise<FeedbackResponse> => {
+  try {
+    const response = await api.post<FeedbackResponse>('/api/feedback/', feedbackData);
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const errorMessage = error.response?.data?.detail || error.message;
+      throw new Error(errorMessage);
+    }
+    throw error;
+  }
+};
+
+export const getFeedbackList = async (
+  page: number = 1,
+  limit: number = 20,
+  category?: string,
+  status?: string,
+  priority?: string
+): Promise<FeedbackListResponse> => {
+  try {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+    });
+    
+    if (category) params.append('category', category);
+    if (status) params.append('status', status);
+    if (priority) params.append('priority', priority);
+    
+    const response = await api.get<FeedbackListResponse>(`/api/feedback/?${params.toString()}`);
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const errorMessage = error.response?.data?.detail || error.message;
+      throw new Error(errorMessage);
+    }
+    throw error;
+  }
+};
+
+export const getFeedbackById = async (feedbackId: number): Promise<FeedbackItem> => {
+  try {
+    const response = await api.get<FeedbackItem>(`/api/feedback/${feedbackId}`);
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const errorMessage = error.response?.data?.detail || error.message;
+      throw new Error(errorMessage);
+    }
+    throw error;
+  }
+};
+
+export const updateFeedbackStatus = async (
+  feedbackId: number,
+  status: string,
+  adminNotes?: string
+): Promise<{ success: boolean; message: string }> => {
+  try {
+    const data: { status: string; admin_notes?: string } = { status };
+    if (adminNotes) data.admin_notes = adminNotes;
+    
+    const response = await api.put<{ success: boolean; message: string }>(
+      `/api/feedback/${feedbackId}/status`,
+      data
+    );
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const errorMessage = error.response?.data?.detail || error.message;
+      throw new Error(errorMessage);
+    }
+    throw error;
+  }
+};
+
+export const updateFeedbackPriority = async (
+  feedbackId: number,
+  priority: string
+): Promise<{ success: boolean; message: string }> => {
+  try {
+    const response = await api.put<{ success: boolean; message: string }>(
+      `/api/feedback/${feedbackId}/priority`,
+      { priority }
+    );
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const errorMessage = error.response?.data?.detail || error.message;
+      throw new Error(errorMessage);
+    }
+    throw error;
+  }
+};
+
+export const getFeedbackStats = async (): Promise<FeedbackStats> => {
+  try {
+    const response = await api.get<{ success: boolean; data: FeedbackStats }>('/api/feedback/stats/summary');
+    return response.data.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const errorMessage = error.response?.data?.detail || error.message;
+      throw new Error(errorMessage);
+    }
+    throw error;
+  }
+};
+
+// ===================== PUBLIC FEATURE REQUESTS =====================
+
+export interface UpvoteRequest {
+  userIdentifier: string;
+  userEmail?: string;
+  userName?: string;
+}
+
+export interface UpvoteResponse {
+  success: boolean;
+  message: string;
+  upvoteCount: number;
+  userHasUpvoted: boolean;
+}
+
+export interface PublicFeatureRequest {
+  id: number;
+  subject: string;
+  message: string;
+  upvoteCount: number;
+  status: string;
+  priority: string;
+  createdAt: string;
+  updatedAt: string;
+  implementationNotes?: string;
+  estimatedCompletion?: string;
+  userHasUpvoted?: boolean;
+  recentUpvotes?: number;
+}
+
+export interface PublicFeatureListResponse {
+  success: boolean;
+  data: PublicFeatureRequest[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export const getPublicFeatureRequests = async (
+  page: number = 1,
+  limit: number = 20,
+  sort: string = 'upvotes',
+  status?: string,
+  userIdentifier?: string
+): Promise<PublicFeatureListResponse> => {
+  try {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+      sort: sort,
+    });
+    
+    if (status) params.append('status', status);
+    if (userIdentifier) params.append('user_identifier', userIdentifier);
+    
+    const response = await api.get<PublicFeatureListResponse>(`/api/feedback/features/public?${params.toString()}`);
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const errorMessage = error.response?.data?.detail || error.message;
+      throw new Error(errorMessage);
+    }
+    throw error;
+  }
+};
+
+export const getTrendingFeatureRequests = async (
+  limit: number = 10,
+  userIdentifier?: string
+): Promise<PublicFeatureListResponse> => {
+  try {
+    const params = new URLSearchParams({
+      limit: limit.toString(),
+    });
+    
+    if (userIdentifier) params.append('user_identifier', userIdentifier);
+    
+    const response = await api.get<PublicFeatureListResponse>(`/api/feedback/features/trending?${params.toString()}`);
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const errorMessage = error.response?.data?.detail || error.message;
+      throw new Error(errorMessage);
+    }
+    throw error;
+  }
+};
+
+export const upvoteFeatureRequest = async (
+  feedbackId: number,
+  upvoteData: UpvoteRequest
+): Promise<UpvoteResponse> => {
+  try {
+    const response = await api.post<UpvoteResponse>(`/api/feedback/${feedbackId}/upvote`, upvoteData);
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const errorMessage = error.response?.data?.detail || error.message;
+      throw new Error(errorMessage);
+    }
+    throw error;
+  }
+};
+
+export const removeUpvoteFromFeatureRequest = async (
+  feedbackId: number,
+  userIdentifier: string
+): Promise<UpvoteResponse> => {
+  try {
+    const params = new URLSearchParams({
+      user_identifier: userIdentifier,
+    });
+    
+    const response = await api.delete<UpvoteResponse>(`/api/feedback/${feedbackId}/upvote?${params.toString()}`);
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const errorMessage = error.response?.data?.detail || error.message;
+      throw new Error(errorMessage);
+    }
+    throw error;
+  }
+};

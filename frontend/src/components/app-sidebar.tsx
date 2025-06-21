@@ -9,6 +9,7 @@ import {
   MessageSquare,
   LifeBuoy,
   GitBranch,
+  Lightbulb,
 } from 'lucide-react';
 
 import { NavMain } from '@/components/nav-main';
@@ -54,6 +55,11 @@ const SIDEBAR_DATA = {
     },
   ],
   navSecondary: [
+    {
+      title: 'Feature Requests',
+      url: '/features',
+      icon: Lightbulb,
+    },
     {
       title: 'Settings',
       url: '/dashboard/settings',

@@ -11,16 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { MessageSquare, Star, Bug, Lightbulb, Heart, Send } from 'lucide-react';
-
-interface FeedbackFormData {
-  name: string;
-  email: string;
-  category: string;
-  subject: string;
-  message: string;
-  rating: number;
-  allowContact: boolean;
-}
+import { submitFeedback, type FeedbackFormData } from '@/lib/api';
 
 export default function FeedbackPage() {
   const [formData, setFormData] = useState<FeedbackFormData>({
@@ -46,22 +37,26 @@ export default function FeedbackPage() {
     setIsSubmitting(true);
     
     try {
-      // TODO: Implement API call to submit feedback
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+      const response = await submitFeedback(formData);
       
-      toast.success('Thank you for your feedback! We&apos;ll get back to you soon.');
-      
-      // Reset form
-      setFormData(prev => ({
-        ...prev,
-        category: '',
-        subject: '',
-        message: '',
-        rating: 0,
-        allowContact: true,
-      }));
-    } catch {
-      toast.error('Failed to submit feedback. Please try again.');
+      if (response.success) {
+        toast.success(response.message);
+        
+        // Reset form
+        setFormData(prev => ({
+          ...prev,
+          category: '',
+          subject: '',
+          message: '',
+          rating: 0,
+          allowContact: true,
+        }));
+      } else {
+        toast.error('Failed to submit feedback. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to submit feedback. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
