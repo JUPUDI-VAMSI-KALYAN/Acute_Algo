@@ -4,9 +4,10 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Badge } from './ui/badge';
-import { Progress } from './ui/progress';
+import { Progress } from "@/components/ui/progress";
 import { Button } from './ui/button';
-import { ChevronLeft, ChevronRight, BarChart3 } from 'lucide-react';
+import { Separator } from './ui/separator';
+import { ChevronLeft, ChevronRight, BarChart3, TrendingUp, GitBranch, FileText, Target } from 'lucide-react';
 import { useChatContext } from '../contexts/ChatContext';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -59,19 +60,19 @@ export function AnalysisPanel({ isCollapsed = false, onToggleCollapse }: Analysi
 
   if (isCollapsed) {
     return (
-      <div className="flex flex-col h-full w-12">
-        <Card className="flex-1 flex flex-col">
+      <div className="flex flex-col h-full w-12 transition-all duration-500 ease-in-out">
+        <Card className="flex-1 flex flex-col transition-all duration-500 ease-in-out">
           <CardHeader className="p-2">
             <div className="flex flex-col items-center gap-2">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={onToggleCollapse}
-                className="w-8 h-8 p-0"
+                className="w-8 h-8 p-0 transition-all duration-300 hover:scale-110"
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              <BarChart3 className="h-4 w-4 text-muted-foreground transition-all duration-300" />
             </div>
           </CardHeader>
         </Card>
@@ -80,18 +81,18 @@ export function AnalysisPanel({ isCollapsed = false, onToggleCollapse }: Analysi
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <Card className="flex-1 flex flex-col">
+    <div className="flex flex-col h-full transition-all duration-500 ease-in-out transform">
+      <Card className="flex-1 flex flex-col transition-all duration-500 ease-in-out">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">
+            <CardTitle className="text-lg transition-all duration-300">
               {algorithm ? `${algorithm.name} Analysis` : 'Algorithm Analysis'}
             </CardTitle>
             <Button
               variant="ghost"
               size="sm"
               onClick={onToggleCollapse}
-              className="w-8 h-8 p-0"
+              className="w-8 h-8 p-0 transition-all duration-300 hover:scale-110 hover:bg-muted/50"
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -102,35 +103,63 @@ export function AnalysisPanel({ isCollapsed = false, onToggleCollapse }: Analysi
             </div>
           )}
         </CardHeader>
-        <CardContent className="flex-1 p-4">
+        <CardContent className="flex-1 p-4 transition-all duration-500 ease-in-out">
           {!algorithm ? (
-            <div className="flex flex-col items-center justify-center h-full text-center p-6">
-              <div className="max-w-md">
-                <div className="bg-muted/30 p-4 rounded-xl border border-border mb-4">
-                  <div className="bg-muted p-3 rounded-full w-fit mx-auto mb-3">
-                    <BarChart3 className="h-6 w-6 text-muted-foreground" />
-                  </div>
-                  <h3 className="text-lg font-semibold mb-2">
-                    Analysis Ready
-                  </h3>
-                  <p className="text-muted-foreground text-sm">
-                    Use <span className="bg-muted px-2 py-1 rounded font-mono text-xs">@</span> in chat to analyze algorithms
-                  </p>
-                </div>
+            <div className="flex flex-col items-center justify-center h-full text-center p-6 space-y-6">
+              <div className="max-w-md w-full">
+                <Card className="border-dashed border-2">
+                  <CardContent className="pt-6">
+                    <div className="flex flex-col items-center space-y-4">
+                      <div className="rounded-full bg-muted p-3">
+                        <BarChart3 className="h-6 w-6 text-muted-foreground" />
+                      </div>
+                      <div className="space-y-2">
+                        <h3 className="text-lg font-semibold text-foreground">
+                          Analysis Ready
+                        </h3>
+                        <p className="text-muted-foreground text-sm">
+                          Use <Badge variant="secondary" className="font-mono text-xs px-2 py-1">@</Badge> in chat to analyze algorithms
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
                 
-                <div className="grid grid-cols-2 gap-2 text-xs mb-4">
-                  <div className="bg-background p-2 rounded border border-border">
-                    <div className="font-medium">📊 Metrics</div>
-                  </div>
-                  <div className="bg-background p-2 rounded border border-border">
-                    <div className="font-medium">🔄 Flow</div>
-                  </div>
-                  <div className="bg-background p-2 rounded border border-border">
-                    <div className="font-medium">📝 Pseudocode</div>
-                  </div>
-                  <div className="bg-background p-2 rounded border border-border">
-                    <div className="font-medium">🎯 Quality</div>
-                  </div>
+                <Separator className="my-6" />
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <Card className="p-4 hover:shadow-sm transition-all duration-200 hover:scale-105">
+                    <div className="flex items-center space-x-3">
+                      <div className="rounded-full bg-blue-100 p-2">
+                        <TrendingUp className="h-4 w-4 text-blue-600" />
+                      </div>
+                      <span className="font-medium text-sm">Metrics</span>
+                    </div>
+                  </Card>
+                  <Card className="p-4 hover:shadow-sm transition-all duration-200 hover:scale-105">
+                    <div className="flex items-center space-x-3">
+                      <div className="rounded-full bg-green-100 p-2">
+                        <GitBranch className="h-4 w-4 text-green-600" />
+                      </div>
+                      <span className="font-medium text-sm">Flow</span>
+                    </div>
+                  </Card>
+                  <Card className="p-4 hover:shadow-sm transition-all duration-200 hover:scale-105">
+                    <div className="flex items-center space-x-3">
+                      <div className="rounded-full bg-purple-100 p-2">
+                        <FileText className="h-4 w-4 text-purple-600" />
+                      </div>
+                      <span className="font-medium text-sm">Pseudocode</span>
+                    </div>
+                  </Card>
+                  <Card className="p-4 hover:shadow-sm transition-all duration-200 hover:scale-105">
+                    <div className="flex items-center space-x-3">
+                      <div className="rounded-full bg-orange-100 p-2">
+                        <Target className="h-4 w-4 text-orange-600" />
+                      </div>
+                      <span className="font-medium text-sm">Quality</span>
+                    </div>
+                  </Card>
                 </div>
               </div>
             </div>
