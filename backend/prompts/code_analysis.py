@@ -6,9 +6,11 @@ Focus on code quality, maintainability, and general analysis.
 
 class CodeAnalysisPrompts:
     """Prompts for general code quality analysis."""
-    
+
     @staticmethod
-    def get_code_quality_assessment_prompt(function_code: str, function_name: str, language: str) -> str:
+    def get_code_quality_assessment_prompt(
+        function_code: str, function_name: str, language: str
+    ) -> str:
         """Assess overall code quality."""
         return f"""Assess the overall quality of this {language} function:
 
@@ -61,7 +63,9 @@ Provide specific, actionable feedback for improvement.
 Return only the JSON object, no additional formatting or explanation."""
 
     @staticmethod
-    def get_maintainability_analysis_prompt(function_code: str, function_name: str, language: str) -> str:
+    def get_maintainability_analysis_prompt(
+        function_code: str, function_name: str, language: str
+    ) -> str:
         """Analyze code maintainability."""
         return f"""Analyze the maintainability of this {language} function:
 
@@ -107,7 +111,9 @@ Provide practical recommendations for reducing maintenance burden.
 Return only the JSON object, no additional formatting or explanation."""
 
     @staticmethod
-    def get_code_standards_compliance_prompt(function_code: str, function_name: str, language: str) -> str:
+    def get_code_standards_compliance_prompt(
+        function_code: str, function_name: str, language: str
+    ) -> str:
         """Check compliance with coding standards."""
         return f"""Check this {language} function against coding standards:
 
@@ -165,7 +171,9 @@ Focus on actionable improvements for standards compliance.
 Return only the JSON object, no additional formatting or explanation."""
 
     @staticmethod
-    def get_refactoring_recommendations_prompt(function_code: str, function_name: str, language: str) -> str:
+    def get_refactoring_recommendations_prompt(
+        function_code: str, function_name: str, language: str
+    ) -> str:
         """Provide refactoring recommendations."""
         return f"""Analyze this {language} function and provide refactoring recommendations:
 
@@ -229,7 +237,9 @@ Prioritize recommendations by business value and implementation ease.
 Return only the JSON object, no additional formatting or explanation."""
 
     @staticmethod
-    def get_testing_recommendations_prompt(function_code: str, function_name: str, language: str) -> str:
+    def get_testing_recommendations_prompt(
+        function_code: str, function_name: str, language: str
+    ) -> str:
         """Recommend testing strategies for the code."""
         return f"""Analyze this {language} function and recommend testing strategies:
 
@@ -282,4 +292,4 @@ Return ONLY a JSON object with this exact structure:
 ```
 
 Focus on practical testing approaches that provide maximum business value.
-Return only the JSON object, no additional formatting or explanation.""" 
+Return only the JSON object, no additional formatting or explanation."""

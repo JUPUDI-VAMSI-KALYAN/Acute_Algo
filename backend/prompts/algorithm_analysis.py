@@ -6,7 +6,7 @@ Focus on pseudocode, flowcharts, and complexity analysis.
 
 class AlgorithmAnalysisPrompts:
     """Prompts for technical algorithm analysis."""
-    
+
     # System prompt for technical analysis
     TECHNICAL_ANALYSIS_SYSTEM = """
 You are a senior software engineer and algorithm specialist with expertise in code analysis and optimization.
@@ -23,9 +23,11 @@ Focus on:
 Provide detailed technical insights that help developers understand the algorithmic approach, identify potential improvements, and ensure code quality.
 Always include specific, actionable recommendations for technical enhancement.
 """
-    
+
     @staticmethod
-    def get_pseudocode_prompt(function_code: str, function_name: str, language: str) -> str:
+    def get_pseudocode_prompt(
+        function_code: str, function_name: str, language: str
+    ) -> str:
         """Generate pseudocode for the algorithm."""
         return f"""Analyze this {language} function and create clear, readable pseudocode:
 
@@ -62,7 +64,9 @@ Use \\n for line breaks within the pseudocode string.
 Return only the JSON object, no additional formatting or explanation."""
 
     @staticmethod
-    def get_flowchart_prompt(function_code: str, function_name: str, language: str) -> str:
+    def get_flowchart_prompt(
+        function_code: str, function_name: str, language: str
+    ) -> str:
         """Generate Mermaid flowchart for the algorithm."""
         return f"""Analyze this {language} function and create a Mermaid flowchart that visualizes its logic flow:
 
@@ -130,7 +134,9 @@ Use \\n for line breaks within the flowchart string.
 Return only the JSON object, no additional formatting or explanation."""
 
     @staticmethod
-    def get_complexity_analysis_prompt(function_code: str, function_name: str, language: str) -> str:
+    def get_complexity_analysis_prompt(
+        function_code: str, function_name: str, language: str
+    ) -> str:
         """Analyze algorithmic complexity."""
         return f"""Analyze this {language} function for complexity, performance, and code quality:
 
@@ -166,7 +172,9 @@ Keep each section concise but informative (2-3 sentences max per section).
 Return only the JSON object, no additional formatting or explanation."""
 
     @staticmethod
-    def get_optimization_suggestions_prompt(function_code: str, function_name: str, language: str) -> str:
+    def get_optimization_suggestions_prompt(
+        function_code: str, function_name: str, language: str
+    ) -> str:
         """Get optimization suggestions for the algorithm."""
         return f"""Analyze this {language} function and suggest specific optimizations:
 
@@ -230,7 +238,9 @@ Focus on actionable, specific suggestions with clear implementation guidance.
 Return only the JSON object, no additional formatting or explanation."""
 
     @staticmethod
-    def get_issues_identification_prompt(function_code: str, function_name: str, language: str) -> str:
+    def get_issues_identification_prompt(
+        function_code: str, function_name: str, language: str
+    ) -> str:
         """Identify potential issues in the algorithm."""
         return f"""Analyze this {language} function for potential issues, bugs, or problems:
 

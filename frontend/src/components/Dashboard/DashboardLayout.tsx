@@ -18,11 +18,11 @@ const DashboardContent: React.FC<DashboardLayoutProps> = ({
   data,
 }) => {
   const [activeTab, setActiveTab] = useState('overview');
-  const { selectedFunction, setSelectedFunction } = useChatContext();
+  const { selectedAlgorithm, setSelectedAlgorithm } = useChatContext();
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
-    setSelectedFunction(null);
+    setSelectedAlgorithm(null);
   };
 
   return (
@@ -49,9 +49,9 @@ const DashboardContent: React.FC<DashboardLayoutProps> = ({
       </div>
 
       <ChatAssistant 
-        functionInfo={selectedFunction ? {
-          name: selectedFunction.name,
-          code: selectedFunction.code
+        functionInfo={selectedAlgorithm ? {
+          name: selectedAlgorithm.algorithm.name,
+          code: selectedAlgorithm.code
         } : null}
         repositoryInfo={{
           name: data.repositoryName,
@@ -70,4 +70,4 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = (props) => {
       <DashboardContent {...props} />
     </ChatProvider>
   );
-}; 
+};

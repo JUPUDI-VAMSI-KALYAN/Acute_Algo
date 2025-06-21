@@ -1,17 +1,41 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { AlgorithmFunction, AIAnalysisData } from '../lib/api';
 
-interface SelectedFunction {
+interface Repository {
+  id: number;
   name: string;
-  code: string;
-  filePath: string;
+}
+
+interface SelectedAlgorithm {
+  algorithm: AlgorithmFunction;
+  aiAnalysis?: AIAnalysisData;
+  code?: string;
 }
 
 interface ChatContextType {
-  selectedFunction: SelectedFunction | null;
-  setSelectedFunction: (func: SelectedFunction | null) => void;
+  currentRepository: Repository | null;
+  setCurrentRepository: (repo: Repository | null) => void;
+  selectedAlgorithm: SelectedAlgorithm | null;
+  setSelectedAlgorithm: (algorithm: SelectedAlgorithm | null) => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
+
+export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [currentRepository, setCurrentRepository] = useState<Repository | null>(null);
+  const [selectedAlgorithm, setSelectedAlgorithm] = useState<SelectedAlgorithm | null>(null);
+
+  return (
+    <ChatContext.Provider value={{ 
+      currentRepository, 
+      setCurrentRepository,
+      selectedAlgorithm,
+      setSelectedAlgorithm
+    }}>
+      {children}
+    </ChatContext.Provider>
+  );
+};
 
 export const useChatContext = () => {
   const context = useContext(ChatContext);
@@ -20,17 +44,3 @@ export const useChatContext = () => {
   }
   return context;
 };
-
-interface ChatProviderProps {
-  children: ReactNode;
-}
-
-export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
-  const [selectedFunction, setSelectedFunction] = useState<SelectedFunction | null>(null);
-
-  return (
-    <ChatContext.Provider value={{ selectedFunction, setSelectedFunction }}>
-      {children}
-    </ChatContext.Provider>
-  );
-}; 

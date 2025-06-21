@@ -35,7 +35,7 @@ app = FastAPI(
     title="Acute Algo API",
     description="GitHub Repository Analysis API",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 # Add CORS middleware
@@ -43,7 +43,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",  # Local development
-        "https://walrus-app-2-ono4l.ondigitalocean.app"  # Production frontend
+        "https://walrus-app-2-ono4l.ondigitalocean.app",  # Production frontend
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -55,6 +55,7 @@ app.include_router(health.router)
 app.include_router(analysis.router)
 app.include_router(ai.router)
 app.include_router(database.router)
+
 
 @app.get("/")
 async def root():
