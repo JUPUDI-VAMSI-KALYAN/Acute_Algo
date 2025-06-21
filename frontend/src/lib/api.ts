@@ -32,14 +32,46 @@ export interface FileCounts {
   total: number;
 }
 
+export interface BusinessMetrics {
+  complexityScore: number;
+  businessImpact: number;
+  maintenanceRisk: number;
+  performanceRisk: number;
+  algorithmType: string;
+  businessDomain: string;
+  priorityLevel: string;
+}
+
+export interface BusinessAnalysisResult {
+  businessDescription: string;
+  businessMetrics: BusinessMetrics;
+}
+
+// Enhanced AI Analysis Data supporting new LangChain responses
 export interface AIAnalysisData {
+  // Core technical fields
   pseudocode: string;
   flowchart: string;
   complexityAnalysis: string;
   optimizationSuggestions: string[];
   potentialIssues: string[];
   analysisTimestamp?: string;
-  analysis?: string;
+  analysisType?: string;
+  
+  // Enhanced fields from LangChain
+  shortDescription?: string;
+  overallAssessment?: string;
+  recommendations?: string[];
+  
+  // Business analysis fields (legacy format for database compatibility)
+  businessAnalysis?: BusinessAnalysisResult;
+  
+  // Enhanced business fields from LangChain
+  businessValue?: string;
+  useCases?: string[];
+  performanceImpact?: string;
+  scalabilityNotes?: string;
+  maintenanceComplexity?: string;
 }
 
 export interface FunctionInfo {
@@ -107,9 +139,16 @@ export interface AIAnalysisRequest {
   functionName: string;
   language: string;
   filePath?: string;
+  functionId?: string; // Database function ID for storing analysis results
+  analysisType?: string; // 'algorithm_only', 'business_focused', 'quick_assessment', 'comprehensive'
 }
 
 export interface AIAnalysisResponse {
+  success: boolean;
+  data: AIAnalysisData;
+}
+
+export interface EnhancedAIAnalysisResponse {
   success: boolean;
   data: AIAnalysisData;
 }
@@ -314,6 +353,8 @@ export interface DatabaseAIAnalysis {
   optimizationSuggestions: string[];
   potentialIssues: string[];
   createdAt: string;
+  businessAnalysis?: BusinessAnalysisResult;
+  analysisType?: string;
 }
 
 export interface ChatConversation {
@@ -435,11 +476,7 @@ export const getRepositoryFiles = async (
 
 export const saveAIAnalysis = async (data: {
   functionId: string;
-  pseudocode: string;
-  flowchart: string;
-  complexityAnalysis: string;
-  optimizationSuggestions: string[];
-  potentialIssues: string[];
+  data: AIAnalysisData;
 }): Promise<unknown> => {
   try {
     const response = await api.post('/api/database/ai-analysis', data);
@@ -455,16 +492,41 @@ export const saveAIAnalysis = async (data: {
 
 export const getFunctionWithAIAnalysis = async (functionId: string): Promise<unknown> => {
   try {
+    console.log('Getting function with AI analysis:', functionId);
     const response = await api.get(`/api/database/function/${functionId}/ai-analysis`);
-    if (response.data.success) {
+    console.log('Function with AI analysis response:', response.data);
+    
+    if (response.data?.success && response.data?.data) {
       return response.data.data;
     } else {
-      throw new Error('Failed to get function data');
+      throw new Error('Invalid response format');
     }
   } catch (error) {
+    console.error('Error getting function with AI analysis:', error);
     if (axios.isAxiosError(error)) {
-      const errorMessage = error.response?.data?.detail || error.message;
-      throw new Error(errorMessage);
+      const message = error.response?.data?.detail || 'Failed to fetch function details';
+      throw new Error(message);
+    }
+    throw error;
+  }
+};
+
+export const getAlgorithmWithAIAnalysis = async (algorithmId: string): Promise<unknown> => {
+  try {
+    console.log('Getting algorithm with AI analysis:', algorithmId);
+    const response = await api.get(`/api/database/algorithm/${algorithmId}/ai-analysis`);
+    console.log('Algorithm with AI analysis response:', response.data);
+    
+    if (response.data?.success && response.data?.data) {
+      return response.data.data;
+    } else {
+      throw new Error('Invalid response format');
+    }
+  } catch (error) {
+    console.error('Error getting algorithm with AI analysis:', error);
+    if (axios.isAxiosError(error)) {
+      const message = error.response?.data?.detail || 'Failed to fetch algorithm details';
+      throw new Error(message);
     }
     throw error;
   }

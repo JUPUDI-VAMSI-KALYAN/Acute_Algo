@@ -324,14 +324,22 @@ export default function AlgorithmsPage() {
                   <TableHead>Confidence</TableHead>
                   <TableHead>Score</TableHead>
                   <TableHead>Lines</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredAlgorithms.map((algo) => {
                   const scoreBadge = getScoreBadge(algo.algorithm_score);
                   return (
-                    <TableRow key={algo.id}>
-                      <TableCell className="font-medium">{algo.name}</TableCell>
+                    <TableRow key={algo.id} className="cursor-pointer hover:bg-muted/50">
+                      <TableCell className="font-medium">
+                        <Link 
+                          href={`/dashboard/algorithms/${algo.id}`}
+                          className="text-blue-600 hover:text-blue-800 hover:underline font-semibold"
+                        >
+                          {algo.name}
+                        </Link>
+                      </TableCell>
                       <TableCell className="text-muted-foreground max-w-[300px] truncate">
                         {getCleanPath(algo.file_analyses.file_path)}
                       </TableCell>
@@ -351,6 +359,13 @@ export default function AlgorithmsPage() {
                         </span>
                       </TableCell>
                       <TableCell>{algo.line_count}</TableCell>
+                      <TableCell>
+                        <Button size="sm" variant="outline" asChild>
+                          <Link href={`/dashboard/algorithms/${algo.id}`}>
+                            View Details
+                          </Link>
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   );
                 })}

@@ -307,28 +307,34 @@ async def get_repository_files(repository_id: int, page: int = 1, limit: int = 2
 
 @router.post("/ai-analysis")
 async def save_ai_analysis(request: dict):
-    """Save AI analysis for a function"""
+    """Save enhanced AI analysis from LangChain service to database"""
     try:
-        function_id = request.get("function_id")
-        if not function_id:
-            raise HTTPException(status_code=400, detail="function_id is required")
+        function_id = request.get("functionId")
+        enhanced_data = request.get("data", {})
         
-        ai_analysis = await db_service.create_ai_analysis(
-            function_id=function_id,
-            pseudocode=request.get("pseudocode", ""),
-            flowchart=request.get("flowchart", ""),
-            complexity_analysis=request.get("complexity_analysis", ""),
-            optimization_suggestions=request.get("optimization_suggestions", []),
-            potential_issues=request.get("potential_issues", [])
+        if not function_id:
+            raise HTTPException(status_code=400, detail="Function ID is required")
+        
+        if not enhanced_data:
+            raise HTTPException(status_code=400, detail="Analysis data is required")
+        
+        logger.info(f"Saving enhanced AI analysis for function {function_id}")
+        
+        # Save to database using enhanced method
+        result = await db_service.create_ai_analysis(
+            function_id=int(function_id),
+            enhanced_data=enhanced_data
         )
         
-        if not ai_analysis:
+        if result:
+            return {
+                "success": True,
+                "message": "AI analysis saved successfully",
+                "analysis_id": result["id"]
+            }
+        else:
             raise HTTPException(status_code=500, detail="Failed to save AI analysis")
-        
-        return {
-            "success": True,
-            "data": ai_analysis
-        }
+            
     except HTTPException:
         raise
     except Exception as e:
@@ -358,6 +364,34 @@ async def get_function_ai_analysis(function_id: int):
         raise HTTPException(
             status_code=500,
             detail=f"Failed to get function AI analysis: {str(e)}"
+        )
+
+
+@router.get("/algorithm/{algorithm_id}/ai-analysis")
+async def get_algorithm_ai_analysis(algorithm_id: int):
+    """Get algorithm with AI analysis data - same as function but with algorithm-specific context"""
+    try:
+        # Since algorithms are stored as functions with is_algorithm=true,
+        # we can use the same service but ensure it's actually an algorithm
+        algorithm_data = await db_service.get_function_with_ai_analysis(algorithm_id)
+        if not algorithm_data:
+            raise HTTPException(status_code=404, detail="Algorithm not found")
+        
+        # Verify this is actually an algorithm
+        if not algorithm_data.get('is_algorithm', False):
+            raise HTTPException(status_code=404, detail="Function is not classified as an algorithm")
+        
+        return {
+            "success": True,
+            "data": algorithm_data
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting algorithm AI analysis: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to get algorithm AI analysis: {str(e)}"
         )
 
 

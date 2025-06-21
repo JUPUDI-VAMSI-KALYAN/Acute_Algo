@@ -1,7 +1,6 @@
 import tree_sitter_python as tspython
 import tree_sitter_javascript as tsjs
-import tree_sitter_typescript as tsts
-from tree_sitter import Language, Parser, Query
+from tree_sitter import Language, Parser
 from pathlib import Path
 from typing import Dict, List, Optional
 from dataclasses import dataclass

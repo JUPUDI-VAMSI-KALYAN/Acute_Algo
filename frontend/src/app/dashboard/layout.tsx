@@ -6,12 +6,12 @@ import {
   SidebarInset,
 } from '@/components/ui/sidebar';
 import { SiteHeader } from '@/components/site-header';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from "sonner";
 import { AnalysisData, analyzeAndSaveRepository, getRepositoryAnalysis } from '@/lib/api';
 
-export default function DashboardLayout({
+function DashboardContent({
   children,
 }: {
   children: React.ReactNode;
@@ -111,5 +111,17 @@ export default function DashboardLayout({
         {children}
       </SidebarInset>
     </SidebarProvider>
+  );
+}
+
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading...</div>}>
+      <DashboardContent>{children}</DashboardContent>
+    </Suspense>
   );
 } 

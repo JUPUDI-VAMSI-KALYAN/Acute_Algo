@@ -1,7 +1,5 @@
 import os
-import asyncio
 from typing import Dict, List, Optional, Any
-from datetime import datetime
 import asyncpg
 from supabase import create_client, Client
 from dotenv import load_dotenv
@@ -174,19 +172,68 @@ class DatabaseService:
             return None
     
     # AI analysis operations
-    async def create_ai_analysis(self, function_id: int, pseudocode: str, flowchart: str,
-                               complexity_analysis: str, optimization_suggestions: List[str] = None,
-                               potential_issues: List[str] = None) -> Dict[str, Any]:
-        """Create AI analysis record"""
+    async def create_ai_analysis(self, function_id: int, enhanced_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Create AI analysis record from enhanced LangChain data"""
         try:
-            result = self.supabase.table("ai_analyses").insert({
+            # Map enhanced data to database schema
+            data = {
                 "function_id": function_id,
-                "pseudocode": pseudocode,
-                "flowchart": flowchart,
-                "complexity_analysis": complexity_analysis,
-                "optimization_suggestions": optimization_suggestions or [],
-                "potential_issues": potential_issues or []
-            }).execute()
+                "pseudocode": enhanced_data.get("pseudocode", ""),
+                "flowchart": enhanced_data.get("flowchart", ""),
+                "complexity_analysis": enhanced_data.get("complexityAnalysis", ""),
+                "optimization_suggestions": enhanced_data.get("optimizationSuggestions", []),
+                "potential_issues": enhanced_data.get("potentialIssues", []),
+                "analysis_type": enhanced_data.get("analysisType", "comprehensive")
+            }
+            
+            # Add enhanced LangChain fields (now with database support)
+            if enhanced_data.get("shortDescription"):
+                data["short_description"] = enhanced_data["shortDescription"]
+            
+            if enhanced_data.get("businessValue"):
+                data["business_value"] = enhanced_data["businessValue"]
+                
+            if enhanced_data.get("useCases"):
+                data["use_cases"] = enhanced_data["useCases"]
+                
+            if enhanced_data.get("performanceImpact"):
+                data["performance_impact"] = enhanced_data["performanceImpact"]
+                
+            if enhanced_data.get("scalabilityNotes"):
+                data["scalability_notes"] = enhanced_data["scalabilityNotes"]
+                
+            if enhanced_data.get("maintenanceComplexity"):
+                data["maintenance_complexity"] = enhanced_data["maintenanceComplexity"]
+                
+            if enhanced_data.get("overallAssessment"):
+                data["overall_assessment"] = enhanced_data["overallAssessment"]
+                
+            if enhanced_data.get("recommendations"):
+                data["recommendations"] = enhanced_data["recommendations"]
+            
+            # Add legacy business analysis fields if available (for backward compatibility)
+            business_analysis = enhanced_data.get("businessAnalysis")
+            if business_analysis and isinstance(business_analysis, dict):
+                if business_analysis.get("businessDescription") and not data.get("short_description"):
+                    data["business_description"] = business_analysis["businessDescription"]
+                    
+                business_metrics = business_analysis.get("businessMetrics", {})
+                if business_metrics:
+                    data.update({
+                        "complexity_score": business_metrics.get("complexityScore"),
+                        "business_impact": business_metrics.get("businessImpact"),
+                        "maintenance_risk": business_metrics.get("maintenanceRisk"),
+                        "performance_risk": business_metrics.get("performanceRisk"),
+                        "algorithm_type": business_metrics.get("algorithmType"),
+                        "business_domain": business_metrics.get("businessDomain"),
+                        "priority_level": business_metrics.get("priorityLevel")
+                    })
+            else:
+                # Fallback: use shortDescription as business_description if no legacy format
+                if enhanced_data.get("shortDescription") and not data.get("business_description"):
+                    data["business_description"] = enhanced_data["shortDescription"]
+            
+            result = self.supabase.table("ai_analyses").insert(data).execute()
             return result.data[0] if result.data else None
         except Exception as e:
             print(f"Error creating AI analysis: {e}")
@@ -290,10 +337,10 @@ class DatabaseService:
             return None
     
     async def get_function_with_ai_analysis(self, function_id: int) -> Optional[Dict[str, Any]]:
-        """Get function with AI analysis data"""
+        """Get function with AI analysis data including enhanced fields"""
         try:
             result = self.supabase.table("functions").select(
-                "*, ai_analyses(*), file_analyses(file_path, language)"
+                "*, ai_analyses(*, short_description, business_value, use_cases, performance_impact, scalability_notes, maintenance_complexity, overall_assessment, recommendations), file_analyses(file_path, language)"
             ).eq("id", function_id).execute()
             return result.data[0] if result.data else None
         except Exception as e:
@@ -392,13 +439,6 @@ class DatabaseService:
             offset = (page - 1) * limit
             
             # Build query using JOIN through file_analyses
-            base_query = """
-                functions(
-                    id, name, func_type, start_line, end_line, line_count, 
-                    is_algorithm, algorithm_score, classification_reason,
-                    file_analyses(file_path, language)
-                )
-            """
             
             # Get file analysis IDs for this session
             file_analyses_result = self.supabase.table("file_analyses").select(

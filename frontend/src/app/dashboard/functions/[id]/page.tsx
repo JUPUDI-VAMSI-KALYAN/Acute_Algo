@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { getFunctionWithAIAnalysis, analyzeFunctionWithAI, DatabaseAIAnalysis } from '@/lib/api';
+import { getFunctionWithAIAnalysis, analyzeFunctionWithAI, DatabaseAIAnalysis, AIAnalysisData } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Code, Bot, FileText, GitBranch } from 'lucide-react';
+import { ArrowLeft, Code, Bot, FileText, GitBranch, Lightbulb, AlertTriangle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import MermaidDiagram from '@/components/MermaidDiagram';
@@ -35,17 +35,13 @@ export default function FunctionDetailPage() {
   const functionId = params.id as string;
   
   const [functionDetail, setFunctionDetail] = useState<FunctionDetail | null>(null);
-  const [aiAnalysis, setAiAnalysis] = useState<DatabaseAIAnalysis | null>(null);
+  const [aiAnalysis, setAiAnalysis] = useState<AIAnalysisData | DatabaseAIAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingAI, setLoadingAI] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'code' | 'analysis' | 'pseudocode' | 'flowchart'>('code');
+  const [activeTab, setActiveTab] = useState<'code' | 'analysis' | 'pseudocode' | 'flowchart' | 'business'>('code');
 
-  useEffect(() => {
-    loadFunctionDetail();
-  }, [functionId]);
-
-  const loadFunctionDetail = async () => {
+  const loadFunctionDetail = useCallback(async () => {
     try {
       console.log('Loading function detail for ID:', functionId);
       setLoading(true);
@@ -69,7 +65,11 @@ export default function FunctionDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [functionId]);
+
+  useEffect(() => {
+    loadFunctionDetail();
+  }, [loadFunctionDetail]);
 
   const handleGenerateAIAnalysis = async () => {
     if (!functionDetail || loadingAI) return;
@@ -83,21 +83,11 @@ export default function FunctionDetailPage() {
         functionName: functionDetail.name,
         language: functionDetail.file_analyses.language,
         filePath: functionDetail.file_analyses.file_path,
+        functionId: functionDetail.id, // Include function ID for database storage
+        analysisType: functionDetail.is_algorithm ? 'comprehensive' : 'quick_assessment'
       });
       
-      // Convert to DatabaseAIAnalysis format
-      const dbAnalysis: DatabaseAIAnalysis = {
-        id: `generated-${functionDetail.id}`,
-        functionId: functionDetail.id,
-        pseudocode: analysis.pseudocode,
-        flowchart: analysis.flowchart,
-        complexityAnalysis: analysis.complexityAnalysis,
-        optimizationSuggestions: analysis.optimizationSuggestions,
-        potentialIssues: analysis.potentialIssues,
-        createdAt: new Date().toISOString(),
-      };
-      
-      setAiAnalysis(dbAnalysis);
+      setAiAnalysis(analysis);
       setActiveTab('analysis');
       
     } catch (err) {
@@ -106,6 +96,15 @@ export default function FunctionDetailPage() {
     } finally {
       setLoadingAI(false);
     }
+  };
+
+  // Helper function to check if analysis has enhanced LangChain data
+  const isEnhancedAnalysis = (analysis: DatabaseAIAnalysis | AIAnalysisData | null): analysis is AIAnalysisData => {
+    return Boolean(analysis && (
+      (analysis as AIAnalysisData).shortDescription !== undefined ||
+      (analysis as AIAnalysisData).businessValue !== undefined ||
+      (analysis as AIAnalysisData).overallAssessment !== undefined
+    ));
   };
 
   const getCleanPath = (path: string) => {
@@ -257,8 +256,8 @@ export default function FunctionDetailPage() {
       {/* Content Tabs */}
       <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
         <CardHeader className="pb-3 shrink-0">
-          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'code' | 'analysis' | 'pseudocode' | 'flowchart')} className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'code' | 'analysis' | 'pseudocode' | 'flowchart' | 'business')} className="w-full">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="code" className="flex items-center">
                 <Code className="h-4 w-4 mr-2" />
                 Code
@@ -275,6 +274,10 @@ export default function FunctionDetailPage() {
                 <GitBranch className="h-4 w-4 mr-2" />
                 Flowchart
               </TabsTrigger>
+              <TabsTrigger value="business" disabled={!aiAnalysis} className="flex items-center">
+                <Lightbulb className="h-4 w-4 mr-2" />
+                Business Analysis
+              </TabsTrigger>
             </TabsList>
           </Tabs>
         </CardHeader>
@@ -289,30 +292,192 @@ export default function FunctionDetailPage() {
             
             {activeTab === 'analysis' && aiAnalysis && (
               <div className="prose prose-sm max-w-none h-full overflow-auto dark:prose-invert">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {aiAnalysis.complexityAnalysis}
-                </ReactMarkdown>
-                
-                {aiAnalysis.optimizationSuggestions.length > 0 && (
-                  <div className="mt-6">
-                    <h3 className="text-lg font-semibold mb-3 text-foreground">Optimization Suggestions</h3>
+                {/* Business Analysis Section - Show if available */}
+                {isEnhancedAnalysis(aiAnalysis) && (
+                  <div className="mb-8 p-6 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <h3 className="text-lg font-semibold mb-4 text-blue-900 dark:text-blue-100 flex items-center">
+                      <Bot className="h-5 w-5 mr-2" />
+                      Business Analysis
+                    </h3>
+                    
+                    {/* Business Description */}
+                    <div className="mb-4">
+                      <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-2">Description</h4>
+                      <p className="text-blue-700 dark:text-blue-300">
+                        {aiAnalysis.shortDescription}
+                      </p>
+                    </div>
+                    
+                    {/* Enhanced Business Fields */}
+                    {aiAnalysis.businessValue && (
+                      <div className="mb-4">
+                        <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-2">Business Value</h4>
+                        <p className="text-blue-700 dark:text-blue-300">
+                          {aiAnalysis.businessValue}
+                        </p>
+                      </div>
+                    )}
+                    
+                    {aiAnalysis.useCases && aiAnalysis.useCases.length > 0 && (
+                      <div className="mb-4">
+                        <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-2">Use Cases</h4>
+                        <ul className="list-disc list-inside text-blue-700 dark:text-blue-300">
+                          {aiAnalysis.useCases.map((useCase, index) => (
+                            <li key={index}>{useCase}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    
+                    {aiAnalysis.performanceImpact && (
+                      <div className="mb-4">
+                        <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-2">Performance Impact</h4>
+                        <p className="text-blue-700 dark:text-blue-300">
+                          {aiAnalysis.performanceImpact}
+                        </p>
+                      </div>
+                    )}
+                    
+                    {aiAnalysis.scalabilityNotes && (
+                      <div className="mb-4">
+                        <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-2">Scalability Notes</h4>
+                        <p className="text-blue-700 dark:text-blue-300">
+                          {aiAnalysis.scalabilityNotes}
+                        </p>
+                      </div>
+                    )}
+                    
+                    {aiAnalysis.maintenanceComplexity && (
+                      <div className="mb-4">
+                        <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-2">Maintenance Complexity</h4>
+                        <p className="text-blue-700 dark:text-blue-300">
+                          {aiAnalysis.maintenanceComplexity}
+                        </p>
+                      </div>
+                    )}
+                    
+                    {/* Legacy Business Metrics - Show if available */}
+                    {aiAnalysis.businessAnalysis?.businessMetrics && (
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                        <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg border">
+                          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                            {aiAnalysis.businessAnalysis.businessMetrics.complexityScore}/10
+                          </div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400">Complexity</div>
+                        </div>
+                        <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg border">
+                          <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                            {aiAnalysis.businessAnalysis.businessMetrics.businessImpact}/10
+                          </div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400">Business Impact</div>
+                        </div>
+                        <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg border">
+                          <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                            {aiAnalysis.businessAnalysis.businessMetrics.maintenanceRisk}/10
+                          </div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400">Maintenance Risk</div>
+                        </div>
+                        <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg border">
+                          <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+                            {aiAnalysis.businessAnalysis.businessMetrics.performanceRisk}/10
+                          </div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400">Performance Risk</div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Additional Business Info from legacy format */}
+                    {aiAnalysis.businessAnalysis?.businessMetrics && (
+                      aiAnalysis.businessAnalysis.businessMetrics.algorithmType || 
+                      aiAnalysis.businessAnalysis.businessMetrics.businessDomain || 
+                      aiAnalysis.businessAnalysis.businessMetrics.priorityLevel
+                    ) && (
+                      <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {aiAnalysis.businessAnalysis.businessMetrics.algorithmType && (
+                          <div>
+                            <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">Algorithm Type:</span>
+                            <div className="text-sm text-blue-800 dark:text-blue-200">
+                              {aiAnalysis.businessAnalysis.businessMetrics.algorithmType}
+                            </div>
+                          </div>
+                        )}
+                        {aiAnalysis.businessAnalysis.businessMetrics.businessDomain && (
+                          <div>
+                            <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">Business Domain:</span>
+                            <div className="text-sm text-blue-800 dark:text-blue-200">
+                              {aiAnalysis.businessAnalysis.businessMetrics.businessDomain}
+                            </div>
+                          </div>
+                        )}
+                        {aiAnalysis.businessAnalysis.businessMetrics.priorityLevel && (
+                          <div>
+                            <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">Priority Level:</span>
+                            <div className="text-sm text-blue-800 dark:text-blue-200">
+                              {aiAnalysis.businessAnalysis.businessMetrics.priorityLevel}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Enhanced Recommendations */}
+                {isEnhancedAnalysis(aiAnalysis) && aiAnalysis.recommendations && aiAnalysis.recommendations.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold mb-3 flex items-center">
+                      <Lightbulb className="h-5 w-5 mr-2 text-yellow-500" />
+                      Recommendations
+                    </h3>
                     <ul className="space-y-2">
-                      {aiAnalysis.optimizationSuggestions.map((suggestion, index) => (
-                        <li key={index} className="p-3 bg-green-500/10 border-l-4 border-green-500 rounded text-foreground">
-                          {suggestion}
+                      {aiAnalysis.recommendations.map((rec, index) => (
+                        <li key={index} className="flex items-start">
+                          <span className="inline-block w-2 h-2 bg-yellow-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                          <span>{rec}</span>
                         </li>
                       ))}
                     </ul>
                   </div>
                 )}
-                
-                {aiAnalysis.potentialIssues.length > 0 && (
-                  <div className="mt-6">
-                    <h3 className="text-lg font-semibold mb-3 text-foreground">Potential Issues</h3>
+
+                {/* Technical Analysis */}
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold mb-3">Technical Analysis</h3>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {aiAnalysis.complexityAnalysis}
+                  </ReactMarkdown>
+                </div>
+
+                {/* Optimization Suggestions */}
+                {aiAnalysis.optimizationSuggestions && aiAnalysis.optimizationSuggestions.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold mb-3 flex items-center">
+                      <Lightbulb className="h-5 w-5 mr-2 text-green-500" />
+                      Optimization Suggestions
+                    </h3>
+                    <ul className="space-y-2">
+                      {aiAnalysis.optimizationSuggestions.map((suggestion, index) => (
+                        <li key={index} className="flex items-start">
+                          <span className="inline-block w-2 h-2 bg-green-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                          <span>{suggestion}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Potential Issues */}
+                {aiAnalysis.potentialIssues && aiAnalysis.potentialIssues.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold mb-3 flex items-center">
+                      <AlertTriangle className="h-5 w-5 mr-2 text-red-500" />
+                      Potential Issues
+                    </h3>
                     <ul className="space-y-2">
                       {aiAnalysis.potentialIssues.map((issue, index) => (
-                        <li key={index} className="p-3 bg-red-500/10 border-l-4 border-red-500 rounded text-foreground">
-                          {issue}
+                        <li key={index} className="flex items-start">
+                          <span className="inline-block w-2 h-2 bg-red-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                          <span>{issue}</span>
                         </li>
                       ))}
                     </ul>
@@ -322,16 +487,32 @@ export default function FunctionDetailPage() {
             )}
             
             {activeTab === 'pseudocode' && aiAnalysis && (
-              <div className="prose prose-sm max-w-none h-full overflow-auto dark:prose-invert">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              <div className="h-full overflow-auto">
+                <pre className="bg-gray-900 dark:bg-gray-800 text-green-400 dark:text-green-300 p-4 rounded-lg font-mono text-sm whitespace-pre-wrap overflow-auto">
                   {aiAnalysis.pseudocode}
-                </ReactMarkdown>
+                </pre>
               </div>
             )}
             
             {activeTab === 'flowchart' && aiAnalysis && (
               <div className="h-full overflow-auto">
                 <MermaidDiagram chart={aiAnalysis.flowchart} />
+              </div>
+            )}
+            
+            {activeTab === 'business' && aiAnalysis && (
+              <div className="prose prose-sm max-w-none h-full overflow-auto dark:prose-invert">
+                {isEnhancedAnalysis(aiAnalysis) && aiAnalysis.overallAssessment ? (
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {aiAnalysis.overallAssessment}
+                  </ReactMarkdown>
+                ) : (
+                  <div className="text-center text-muted-foreground py-8">
+                    <Bot className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>Business analysis not available for this function.</p>
+                    <p className="text-sm mt-2">Try generating a comprehensive AI analysis to get business insights.</p>
+                  </div>
+                )}
               </div>
             )}
           </div>

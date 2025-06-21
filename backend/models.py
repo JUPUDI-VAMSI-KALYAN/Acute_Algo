@@ -1,7 +1,5 @@
-from pydantic import BaseModel, Field, HttpUrl, ConfigDict
-from typing import Dict, List, Optional
-from enum import Enum
 from pydantic import BaseModel, Field, ConfigDict
+from typing import Dict, List, Optional
 
 
 class AnalysisRequest(BaseModel):
@@ -21,14 +19,53 @@ class FileCounts(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+# Business Analysis Models
+class BusinessMetrics(BaseModel):
+    """Business-focused metrics for algorithms"""
+    complexity_score: int = Field(..., alias="complexityScore", description="Complexity score 1-10")
+    business_impact: int = Field(..., alias="businessImpact", description="Business impact score 1-10")
+    maintenance_risk: int = Field(..., alias="maintenanceRisk", description="Maintenance risk score 1-10")
+    performance_risk: int = Field(..., alias="performanceRisk", description="Performance risk score 1-10")
+    algorithm_type: str = Field(..., alias="algorithmType", description="Type of algorithm")
+    business_domain: str = Field(..., alias="businessDomain", description="Business domain")
+    priority_level: str = Field(..., alias="priorityLevel", description="Priority: Low, Medium, High")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class BusinessAnalysisResult(BaseModel):
+    """Business analysis results"""
+    business_description: str = Field(..., alias="businessDescription", description="Brief business purpose")
+    business_metrics: BusinessMetrics = Field(..., alias="businessMetrics")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class AIAnalysisData(BaseModel):
-    """AI analysis results for a function"""
+    """Enhanced AI analysis data supporting both legacy and new LangChain formats"""
+    # Core technical fields
     pseudocode: str = Field(..., alias="pseudocode")
     flowchart: str = Field(..., alias="flowchart")
     complexity_analysis: str = Field(..., alias="complexityAnalysis")
     optimization_suggestions: List[str] = Field(default=[], alias="optimizationSuggestions")
     potential_issues: List[str] = Field(default=[], alias="potentialIssues")
     analysis_timestamp: Optional[str] = Field(None, alias="analysisTimestamp")
+    analysis_type: Optional[str] = Field("comprehensive", alias="analysisType")
+    
+    # Enhanced fields from LangChain
+    short_description: Optional[str] = Field(None, alias="shortDescription")
+    overall_assessment: Optional[str] = Field(None, alias="overallAssessment")
+    recommendations: List[str] = Field(default=[], alias="recommendations")
+    
+    # Business analysis fields (legacy format for database compatibility)
+    business_analysis: Optional[BusinessAnalysisResult] = Field(None, alias="businessAnalysis")
+    
+    # Enhanced business fields from LangChain
+    business_value: Optional[str] = Field(None, alias="businessValue")
+    use_cases: List[str] = Field(default=[], alias="useCases")
+    performance_impact: Optional[str] = Field(None, alias="performanceImpact")
+    scalability_notes: Optional[str] = Field(None, alias="scalabilityNotes")
+    maintenance_complexity: Optional[str] = Field(None, alias="maintenanceComplexity")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -120,6 +157,8 @@ class AIAnalysisRequest(BaseModel):
     function_name: str = Field(..., alias="functionName")
     language: str = Field(..., alias="language")
     file_path: Optional[str] = Field(None, alias="filePath")
+    function_id: Optional[int] = Field(None, alias="functionId", description="Database function ID for storing analysis results")
+    analysis_type: Optional[str] = Field("comprehensive", alias="analysisType", description="Type of analysis: algorithm_only, business_focused, quick_assessment, comprehensive")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -158,5 +197,39 @@ class ChatResponse(BaseModel):
     success: bool = Field(default=True, alias="success")
     response: str = Field(..., description="AI response")
     conversation_id: Optional[str] = Field(None, alias="conversationId")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+# Additional AI Analysis Models for LangChain
+class AIAnalysisResult(BaseModel):
+    """Technical analysis result from AI"""
+    short_description: str = Field(..., alias="shortDescription", description="Brief description of the algorithm")
+    pseudocode: str = Field(..., alias="pseudocode", description="Pseudocode representation")
+    flowchart: str = Field(..., alias="flowchart", description="Flowchart description")
+    complexity_analysis: str = Field(..., alias="complexityAnalysis", description="Time and space complexity analysis")
+    optimization_suggestions: List[str] = Field(default=[], alias="optimizationSuggestions", description="Optimization recommendations")
+    potential_issues: List[str] = Field(default=[], alias="potentialIssues", description="Potential issues and risks")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class LangChainBusinessAnalysisResult(BaseModel):
+    """Business analysis result for LangChain AI service"""
+    business_value: str = Field(..., alias="businessValue", description="Business value description")
+    use_cases: List[str] = Field(default=[], alias="useCases", description="Potential use cases")
+    performance_impact: str = Field(..., alias="performanceImpact", description="Performance impact assessment")
+    scalability_notes: str = Field(..., alias="scalabilityNotes", description="Scalability considerations")
+    maintenance_complexity: str = Field(..., alias="maintenanceComplexity", description="Maintenance complexity assessment")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class ComprehensiveAnalysisResult(BaseModel):
+    """Comprehensive analysis combining technical and business aspects"""
+    technical_analysis: AIAnalysisResult = Field(..., alias="technicalAnalysis", description="Technical analysis results")
+    business_analysis: LangChainBusinessAnalysisResult = Field(..., alias="businessAnalysis", description="Business analysis results")
+    overall_assessment: str = Field(..., alias="overallAssessment", description="Overall assessment summary")
+    recommendations: List[str] = Field(default=[], alias="recommendations", description="Overall recommendations")
 
     model_config = ConfigDict(populate_by_name=True)
