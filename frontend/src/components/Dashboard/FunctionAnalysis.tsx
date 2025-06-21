@@ -84,7 +84,11 @@ const DetailedFunctionView: React.FC<{
         
         <div className="p-4 border rounded-md bg-gray-900 text-white min-h-[300px]">
             {activeTab === 'code' && <pre><code>{functionCode}</code></pre>}
-            {activeTab === 'pseudocode' && aiAnalysis && <ReactMarkdown remarkPlugins={[remarkGfm]}>{aiAnalysis.pseudocode}</ReactMarkdown>}
+            {activeTab === 'pseudocode' && aiAnalysis && (
+              <pre className="text-green-400 font-mono text-sm whitespace-pre-wrap overflow-auto">
+                {aiAnalysis.pseudocode}
+              </pre>
+            )}
             {activeTab === 'flowchart' && aiAnalysis && <MermaidDiagram chart={aiAnalysis.flowchart} />}
             {activeTab === 'analysis' && aiAnalysis && (
               <div className="prose prose-invert max-w-none">

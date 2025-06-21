@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { analyzeRepository, AnalysisData } from '../../lib/api';
+import { analyzeAndSaveRepository, AnalysisData, isValidGitHubUrl } from '../../lib/api';
+import { Button } from '../ui/button';
+import axios from 'axios';
 
 interface RepositoryInputProps {
-  onAnalysisComplete: (data: AnalysisData, githubUrl?: string) => void;
-  onError: (error: string) => void;
+  onAnalysisComplete: (data: AnalysisData, githubUrl?: string, repositoryId?: string) => void;
+  onError: (errorMessage: string) => void;
 }
 
 const exampleRepos = [
@@ -19,32 +21,44 @@ export const RepositoryInput: React.FC<RepositoryInputProps> = ({
   onAnalysisComplete, 
   onError 
 }) => {
-  const [githubUrl, setGithubUrl] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!githubUrl.trim()) {
-      onError('Please enter a GitHub repository URL');
+  const [url, setUrl] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleAnalyze = async () => {
+    if (!isValidGitHubUrl(url)) {
+      setError('Please enter a valid GitHub repository URL.');
       return;
     }
 
-    setIsLoading(true);
-    onError(''); // Clear any previous errors
+    setLoading(true);
+    setError('');
 
     try {
-      const data = await analyzeRepository(githubUrl);
-      onAnalysisComplete(data, githubUrl);
+      const response = await analyzeAndSaveRepository(url);
+      if (onAnalysisComplete) {
+        onAnalysisComplete(response.data, url, response.repositoryId);
+      }
     } catch (error) {
-      console.error('Analysis failed:', error);
-      onError(error instanceof Error ? error.message : 'Failed to analyze repository');
+      if (axios.isAxiosError(error)) {
+        const errorMessage = error.response?.data?.detail || error.message;
+        setError(errorMessage);
+        onError(errorMessage);
+      } else if (error instanceof Error) {
+        setError(error.message);
+        onError(error.message);
+      } else {
+        const unknownError = 'An unknown error occurred.';
+        setError(unknownError);
+        onError(unknownError);
+      }
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   const handleExampleClick = (repo: string) => {
-    setGithubUrl(`https://github.com/${repo}`);
+    setUrl(`https://github.com/${repo}`);
   };
 
   return (
@@ -61,48 +75,36 @@ export const RepositoryInput: React.FC<RepositoryInputProps> = ({
         </div>
 
         <div className="bg-gray-800/60 backdrop-blur-lg rounded-3xl p-8 md:p-12 border border-gray-700/50 shadow-2xl animate-fade-in-up delay-300">
-          <form onSubmit={handleSubmit} className="space-y-8">
-            <div className="relative">
-              <label htmlFor="github-url" className="block text-sm font-semibold text-gray-300 mb-3">
-                GitHub Repository URL
-              </label>
-              <div className="relative group">
-                <input
-                  id="github-url"
-                  type="url"
-                  value={githubUrl}
-                  onChange={(e) => setGithubUrl(e.target.value)}
-                  placeholder="https://github.com/username/repository"
-                  className="w-full px-6 py-4 bg-gray-700/50 border border-gray-600/50 rounded-2xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 text-lg backdrop-blur-lg group-hover:bg-gray-700/70"
-                  disabled={isLoading}
-                />
-                <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-blue-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={isLoading || !githubUrl.trim()}
-              className="w-full relative group bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-700 text-white font-semibold py-4 px-8 rounded-2xl transition-all duration-300 shadow-2xl hover:shadow-blue-500/25 transform hover:scale-[1.02] disabled:transform-none disabled:cursor-not-allowed text-lg btn-glow"
+          <div className="flex flex-col md:flex-row items-center gap-4 animate-fade-in-up delay-200">
+            <input
+              type="text"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="Enter GitHub Repository URL (e.g., https://github.com/react-hook-form/react-hook-form)"
+              className="flex-grow w-full px-5 py-3 bg-gray-700/50 text-white border border-gray-600/50 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all duration-300"
+              disabled={loading}
+            />
+            <Button
+              onClick={handleAnalyze}
+              disabled={loading}
+              className="w-full md:w-auto px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-lg transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:scale-100"
             >
-              {isLoading ? (
-                <div className="flex items-center justify-center space-x-3">
-                  <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Analyzing Repository...</span>
+              {loading ? (
+                <div className="flex items-center">
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                  Analyzing...
                 </div>
               ) : (
-                <div className="flex items-center justify-center space-x-3">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                  <span>Start Analysis</span>
-                </div>
+                'Analyze'
               )}
-              
-              {/* Button glow effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl opacity-0 group-hover:opacity-20 transition-opacity duration-300 blur-xl"></div>
-            </button>
-          </form>
+            </Button>
+          </div>
+
+          {error && (
+            <div className="mt-4 text-center text-red-400 animate-fade-in-up delay-300">
+              {error}
+            </div>
+          )}
 
           {/* Example Repositories */}
           <div className="mt-12 animate-fade-in-up delay-500">
@@ -114,7 +116,7 @@ export const RepositoryInput: React.FC<RepositoryInputProps> = ({
                  <button
                    key={repo}
                    onClick={() => handleExampleClick(repo)}
-                   disabled={isLoading}
+                   disabled={loading}
                    className="group relative px-4 py-2 bg-gray-700/50 hover:bg-gray-600/70 border border-gray-600/50 hover:border-gray-500/70 rounded-full text-gray-300 hover:text-white transition-all duration-300 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed backdrop-blur-lg"
                  >
                    <span className="relative z-10">{repo}</span>
@@ -167,4 +169,4 @@ export const RepositoryInput: React.FC<RepositoryInputProps> = ({
       </div>
     </section>
   );
-}; 
+};

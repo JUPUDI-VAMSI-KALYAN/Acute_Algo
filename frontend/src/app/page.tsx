@@ -1,57 +1,21 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { HeroSection, RepositoryInput, UseCases } from '../components';
 import { AnalysisData } from '../lib/api';
-import { useRouter } from 'next/navigation';
 
 export default function Home() {
   const [error, setError] = useState<string>('');
   const repositoryInputRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
-  const handleAnalysisComplete = (data: AnalysisData, githubUrl?: string) => {
-    // Create a simplified version of the data for storage
-    const essentialData = {
-      repositoryName: data.repositoryName || '',
-      fileCounts: data.fileCounts || {},
-      totalCharacters: data.totalCharacters || 0,
-      functionAnalysis: {
-        totalFunctions: data.functionAnalysis?.totalFunctions || 0,
-        totalAnalyzedFiles: data.functionAnalysis?.totalAnalyzedFiles || 0,
-        avgFunctionsPerFile: data.functionAnalysis?.avgFunctionsPerFile || 0,
-        mostCommonLanguage: data.functionAnalysis?.mostCommonLanguage || '',
-        languages: data.functionAnalysis?.languages || {}
-      }
-    };
-
-    try {
-      // Store essential data in localStorage
-      localStorage.setItem('analysisData', JSON.stringify(essentialData));
-      // Store full data in sessionStorage (which has a larger quota)
-      sessionStorage.setItem('fullAnalysisData', JSON.stringify(data));
-      if (githubUrl) {
-        localStorage.setItem('githubUrl', githubUrl);
-      }
-      // Navigate to dashboard page
-      router.push('/dashboard');
-    } catch (error) {
-      console.error('Storage error:', error);
-      // If storage fails, try with even more minimal data
-      try {
-        const minimalData = {
-          repositoryName: data.repositoryName || '',
-          functionAnalysis: {
-            totalFunctions: data.functionAnalysis?.totalFunctions || 0,
-            languages: data.functionAnalysis?.languages || {}
-          }
-        };
-        localStorage.setItem('analysisData', JSON.stringify(minimalData));
-        sessionStorage.setItem('fullAnalysisData', JSON.stringify(data));
-        router.push('/dashboard');
-      } catch {
-        handleError('Unable to store analysis data. Please try a smaller repository.');
-      }
+  const handleAnalysisComplete = (data: AnalysisData, githubUrl?: string, repositoryId?: string) => {
+    if (repositoryId) {
+      // Navigate to dashboard with repository ID
+      router.push(`/dashboard?repo=${repositoryId}`);
+    } else {
+      handleError('Repository ID not found. Please try again.');
     }
   };
 

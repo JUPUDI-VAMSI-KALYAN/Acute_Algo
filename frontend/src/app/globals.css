@@ -10,7 +10,7 @@ html, body {
 }
 
 body {
-  @apply bg-black text-white font-sans min-h-screen;
+  @apply bg-background text-foreground font-sans min-h-screen;
   background-attachment: fixed;
 }
 

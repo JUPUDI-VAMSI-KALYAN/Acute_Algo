@@ -93,8 +93,8 @@ export function PlaygroundChat() {
   };
   
   return (
-    <div className="flex flex-col h-full w-full max-w-4xl mx-auto">
-      <ScrollArea className="flex-1 p-4">
+    <div className="flex flex-col h-full">
+      <ScrollArea className="flex-1 p-4 min-h-0">
         <div className="space-y-4">
           {messages.map((message) => (
             <div
@@ -117,7 +117,7 @@ export function PlaygroundChat() {
           <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
-      <div className="p-4 border-t">
+      <div className="p-4 border-t shrink-0 bg-background">
         <form
           onSubmit={(e) => {
             e.preventDefault();

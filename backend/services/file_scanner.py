@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Dict, List, Set, Optional
+from typing import Dict, List, Optional
 from dataclasses import dataclass
 from .function_counter import FunctionCounter, FunctionAnalysisResult
 
@@ -67,7 +67,6 @@ class FileScanner:
     def _find_target_files(self, repo_path: str) -> List[str]:
         """Find all target files in the repository"""
         target_files = []
-        repo_path_obj = Path(repo_path)
         
         for root, dirs, files in os.walk(repo_path):
             # Remove ignored directories from dirs list to prevent walking into them

@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://dolphin-app-tyzp9.ondigitalocean.app';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 // Create axios instance with default config
 const api = axios.create({
@@ -11,6 +11,9 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+// Export the api instance for direct use
+export { api };
 
 // Response interceptor for error handling
 api.interceptors.response.use(
@@ -29,14 +32,46 @@ export interface FileCounts {
   total: number;
 }
 
+export interface BusinessMetrics {
+  complexityScore: number;
+  businessImpact: number;
+  maintenanceRisk: number;
+  performanceRisk: number;
+  algorithmType: string;
+  businessDomain: string;
+  priorityLevel: string;
+}
+
+export interface BusinessAnalysisResult {
+  businessDescription: string;
+  businessMetrics: BusinessMetrics;
+}
+
+// Enhanced AI Analysis Data supporting new LangChain responses
 export interface AIAnalysisData {
+  // Core technical fields
   pseudocode: string;
   flowchart: string;
   complexityAnalysis: string;
   optimizationSuggestions: string[];
   potentialIssues: string[];
   analysisTimestamp?: string;
-  analysis?: string;
+  analysisType?: string;
+  
+  // Enhanced fields from LangChain
+  shortDescription?: string;
+  overallAssessment?: string;
+  recommendations?: string[];
+  
+  // Business analysis fields (legacy format for database compatibility)
+  businessAnalysis?: BusinessAnalysisResult;
+  
+  // Enhanced business fields from LangChain
+  businessValue?: string;
+  useCases?: string[];
+  performanceImpact?: string;
+  scalabilityNotes?: string;
+  maintenanceComplexity?: string;
 }
 
 export interface FunctionInfo {
@@ -47,27 +82,35 @@ export interface FunctionInfo {
   lineCount: number;
   code?: string;
   aiAnalysis?: AIAnalysisData;
+  is_algorithm: boolean;
+  algorithm_score: number;
+  classification_reason: string;
 }
 
 export interface FileAnalysis {
   path: string;
   language: string;
   functionCount: number;
+  algorithm_count: number;
   functions: FunctionInfo[];
   breakdown: Record<string, number>;
+  algorithm_breakdown: Record<string, number>;
 }
 
 export interface LanguageStats {
   files: number;
   functions: number;
+  algorithms: number;
 }
 
 export interface FunctionAnalysis {
   totalFunctions: number;
+  totalAlgorithms: number;
   totalAnalyzedFiles: number;
   languages: Record<string, LanguageStats>;
   files: FileAnalysis[];
   avgFunctionsPerFile: number;
+  avgAlgorithmsPerFile: number;
   mostCommonLanguage: string | null;
   largestFiles: FileAnalysis[];
 }
@@ -96,9 +139,16 @@ export interface AIAnalysisRequest {
   functionName: string;
   language: string;
   filePath?: string;
+  functionId?: string; // Database function ID for storing analysis results
+  analysisType?: string; // 'algorithm_only', 'business_focused', 'quick_assessment', 'comprehensive'
 }
 
 export interface AIAnalysisResponse {
+  success: boolean;
+  data: AIAnalysisData;
+}
+
+export interface EnhancedAIAnalysisResponse {
   success: boolean;
   data: AIAnalysisData;
 }
@@ -150,29 +200,7 @@ interface ValidationError {
   msg: string;
 }
 
-// API functions
-export const analyzeRepository = async (githubUrl: string): Promise<AnalysisData> => {
-  try {
-    // Use longer timeout for repository analysis - large repos like React can take 2-3 minutes
-    const response = await api.post<AnalysisResponse>('/api/analyze-repo', {
-      githubUrl,
-    }, {
-      timeout: 300000, // 5 minutes for very large repositories
-    });
-
-    if (response.data.success) {
-      return response.data.data;
-    } else {
-      throw new Error('Analysis failed');
-    }
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      const errorMessage = error.response?.data?.detail || error.message;
-      throw new Error(errorMessage);
-    }
-    throw error;
-  }
-};
+// ===================== AI ANALYSIS FUNCTIONS =====================
 
 export const analyzeFunctionWithAI = async (request: AIAnalysisRequest): Promise<AIAnalysisData> => {
   try {
@@ -290,4 +318,266 @@ export const copyToClipboard = async (text: string): Promise<boolean> => {
       return false;
     }
   }
-}; 
+};
+
+// New database-related interfaces
+export interface Repository {
+  id: string;
+  name: string;
+  githubUrl: string;
+  directoryTree?: string;
+  fileContents?: string;
+  totalCharacters?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AnalysisSession {
+  id: string;
+  repositoryId: string;
+  totalFunctions: number;
+  totalAlgorithms: number;
+  totalAnalyzedFiles: number;
+  avgFunctionsPerFile: number;
+  avgAlgorithmsPerFile: number;
+  mostCommonLanguage?: string;
+  createdAt: string;
+}
+
+export interface DatabaseAIAnalysis {
+  id: string;
+  functionId: string;
+  pseudocode: string;
+  flowchart: string;
+  complexityAnalysis: string;
+  optimizationSuggestions: string[];
+  potentialIssues: string[];
+  createdAt: string;
+  businessAnalysis?: BusinessAnalysisResult;
+  analysisType?: string;
+}
+
+export interface ChatConversation {
+  id: string;
+  title: string;
+  contextType: string;
+  contextData?: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface ChatMessageDB {
+  id: string;
+  conversationId: string;
+  role: string;
+  content: string;
+  createdAt: string;
+}
+
+// New API functions for database operations
+export const analyzeAndSaveRepository = async (githubUrl: string): Promise<{
+  success: boolean;
+  message: string;
+  repositoryId: string;
+  analysisSessionId: string;
+  data: AnalysisData;
+}> => {
+  try {
+    const response = await api.post('/api/analyze-and-save', { github_url: githubUrl });
+    const responseData = response.data;
+
+    // The backend might send snake_case, let's normalize it to what the frontend expects.
+    const normalizedData = {
+      ...responseData,
+      repositoryId: responseData.repositoryId || responseData.repository_id,
+      analysisSessionId: responseData.analysisSessionId || responseData.analysis_session_id,
+    };
+
+    return normalizedData;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      console.error('API Error Response:', error.response.data);
+    }
+    throw error;
+  }
+};
+
+export const getRepositories = async (): Promise<Repository[]> => {
+  try {
+    const response = await api.get('/api/database/repositories');
+    return response.data;
+  } catch (error) {
+    console.error('Failed to get repositories:', error);
+    return [];
+  }
+};
+
+export const getRepositoriesSummary = async (limit: number = 10): Promise<Repository[]> => {
+  const response = await api.get(`/api/database/repositories/summary?limit=${limit}`);
+  return response.data;
+};
+
+export const getRepositoryAnalysis = async (repositoryId: string): Promise<{
+  repository: Repository;
+  analysisSession: AnalysisSession;
+  fileAnalyses: unknown[];
+  functions: unknown[];
+  languageStats: unknown[];
+}> => {
+  try {
+    const response = await api.get(`/api/database/repository/${repositoryId}`);
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const errorMessage = error.response?.data?.detail || error.message;
+      throw new Error(errorMessage);
+    }
+    throw error;
+  }
+};
+
+export const getRepositoryOverview = async (repositoryId: number): Promise<{
+  repository: Repository;
+  analysisSession: AnalysisSession;
+  fileAnalyses: unknown[];
+  functions: unknown[];
+  languageStats: unknown[];
+}> => {
+  const response = await api.get(`/api/database/repository/${repositoryId}/overview`);
+  return response.data;
+};
+
+export const getRepositoryFunctions = async (
+  repositoryId: number, 
+  page: number = 1, 
+  limit: number = 20, 
+  algorithmOnly: boolean = false
+): Promise<{ functions: unknown[], total: number, page: number, limit: number, total_pages: number }> => {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+    algorithm_only: algorithmOnly.toString()
+  });
+  const response = await api.get(`/api/database/repository/${repositoryId}/functions?${params}`);
+  return response.data;
+};
+
+export const getRepositoryFiles = async (
+  repositoryId: number, 
+  page: number = 1, 
+  limit: number = 20
+): Promise<{ files: unknown[], total: number, page: number, limit: number, total_pages: number }> => {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString()
+  });
+  const response = await api.get(`/api/database/repository/${repositoryId}/files?${params}`);
+  return response.data;
+};
+
+export const saveAIAnalysis = async (data: {
+  functionId: string;
+  data: AIAnalysisData;
+}): Promise<unknown> => {
+  try {
+    const response = await api.post('/api/database/ai-analysis', data);
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const errorMessage = error.response?.data?.detail || error.message;
+      throw new Error(errorMessage);
+    }
+    throw error;
+  }
+};
+
+export const getFunctionWithAIAnalysis = async (functionId: string): Promise<unknown> => {
+  try {
+    console.log('Getting function with AI analysis:', functionId);
+    const response = await api.get(`/api/database/function/${functionId}/ai-analysis`);
+    console.log('Function with AI analysis response:', response.data);
+    
+    if (response.data?.success && response.data?.data) {
+      return response.data.data;
+    } else {
+      throw new Error('Invalid response format');
+    }
+  } catch (error) {
+    console.error('Error getting function with AI analysis:', error);
+    if (axios.isAxiosError(error)) {
+      const message = error.response?.data?.detail || 'Failed to fetch function details';
+      throw new Error(message);
+    }
+    throw error;
+  }
+};
+
+export const getAlgorithmWithAIAnalysis = async (algorithmId: string): Promise<unknown> => {
+  try {
+    console.log('Getting algorithm with AI analysis:', algorithmId);
+    const response = await api.get(`/api/database/algorithm/${algorithmId}/ai-analysis`);
+    console.log('Algorithm with AI analysis response:', response.data);
+    
+    if (response.data?.success && response.data?.data) {
+      return response.data.data;
+    } else {
+      throw new Error('Invalid response format');
+    }
+  } catch (error) {
+    console.error('Error getting algorithm with AI analysis:', error);
+    if (axios.isAxiosError(error)) {
+      const message = error.response?.data?.detail || 'Failed to fetch algorithm details';
+      throw new Error(message);
+    }
+    throw error;
+  }
+};
+
+export const createChatConversation = async (data: {
+  title: string;
+  contextType: string;
+  contextData?: Record<string, unknown>;
+}): Promise<ChatConversation> => {
+  try {
+    const response = await api.post('/api/database/chat/conversation', data);
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const errorMessage = error.response?.data?.detail || error.message;
+      throw new Error(errorMessage);
+    }
+    throw error;
+  }
+};
+
+export const saveChatMessage = async (data: {
+  conversationId: string;
+  role: string;
+  content: string;
+}): Promise<unknown> => {
+  try {
+    const response = await api.post('/api/database/chat/message', data);
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const errorMessage = error.response?.data?.detail || error.message;
+      throw new Error(errorMessage);
+    }
+    throw error;
+  }
+};
+
+export interface AlgorithmFunction {
+  id: string;
+  name: string;
+  type: string;
+  start_line: number;
+  end_line: number;
+  line_count: number;
+  is_algorithm: boolean;
+  algorithm_score: number;
+  classification_reason: string;
+  file_analyses: {
+    file_path: string;
+    language: string;
+  };
+}

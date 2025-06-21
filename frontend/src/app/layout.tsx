@@ -5,6 +5,7 @@ import './globals.css';
 import { Header } from '@/components/Header';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -21,16 +22,19 @@ export default function RootLayout({
   }, []);
 
   const isDashboard = pathname.startsWith('/dashboard');
+  const isLogin = pathname === '/login';
 
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
-        className={`${inter.className} antialiased bg-gray-900 min-h-screen`}
+        className={`${inter.className} antialiased bg-background text-foreground min-h-screen`}
       >
-        {isMounted && !isDashboard && <Header />}
-        <main className={isMounted && !isDashboard ? 'pt-16' : ''}>
-          {children}
-        </main>
+        <ThemeProvider>
+          {isMounted && !isDashboard && !isLogin && <Header />}
+          <main className={isMounted && !isDashboard && !isLogin ? 'pt-16' : ''}>
+            {children}
+          </main>
+        </ThemeProvider>
       </body>
     </html>
   );

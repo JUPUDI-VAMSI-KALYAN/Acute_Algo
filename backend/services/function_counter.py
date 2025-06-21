@@ -1,7 +1,6 @@
 import tree_sitter_python as tspython
 import tree_sitter_javascript as tsjs
-import tree_sitter_typescript as tsts
-from tree_sitter import Language, Parser, Query
+from tree_sitter import Language, Parser
 from pathlib import Path
 from typing import Dict, List, Optional
 from dataclasses import dataclass
@@ -15,6 +14,9 @@ class FunctionInfo:
     end_line: int
     line_count: int
     code: Optional[str] = None
+    is_algorithm: bool = False
+    algorithm_score: float = 0.0
+    classification_reason: str = ""
 
 
 @dataclass
@@ -22,15 +24,18 @@ class FileAnalysis:
     path: str
     language: str
     function_count: int
+    algorithm_count: int
     functions: List[FunctionInfo]
     breakdown: Dict[str, int]
+    algorithm_breakdown: Dict[str, int]
 
 
 @dataclass
 class FunctionAnalysisResult:
     total_functions: int
+    total_algorithms: int
     total_files: int
-    languages: Dict[str, Dict[str, int]]  # language -> {files: int, functions: int}
+    languages: Dict[str, Dict[str, int]]  # language -> {files: int, functions: int, algorithms: int}
     files: List[FileAnalysis]
 
 
@@ -99,6 +104,118 @@ class FunctionCounter:
             print(f"Warning: Failed to initialize tree-sitter: {e}")
             self.languages = {}
             self.queries = {}
+    
+    def _classify_function_as_algorithm(self, func: FunctionInfo, code: str, language: str) -> tuple[bool, float, str]:
+        """Classify if a function is algorithmic or utility based on multiple criteria"""
+        score = 0.0
+        reasons = []
+        
+        # Normalize function name and code for analysis
+        name_lower = func.name.lower()
+        code_lower = code.lower() if code else ""
+        
+        # 1. Exclude obvious utility functions (negative scoring)
+        utility_patterns = [
+            'get', 'set', 'is', 'has', 'can', 'should', 'will',
+            'init', 'setup', 'config', 'load', 'save', 'read', 'write',
+            'parse', 'format', 'convert', 'transform', 'validate',
+            'helper', 'util', 'tool', 'wrapper', 'handler',
+            'log', 'print', 'debug', 'trace', 'error',
+            'test', 'mock', 'stub', 'fixture'
+        ]
+        
+        for pattern in utility_patterns:
+            if pattern in name_lower:
+                score -= 2.0
+                reasons.append(f"utility pattern '{pattern}' in name")
+        
+        # 2. Look for algorithmic patterns (positive scoring)
+        algorithm_patterns = [
+            'sort', 'search', 'find', 'calculate', 'compute', 'solve',
+            'optimize', 'minimize', 'maximize', 'process', 'analyze',
+            'algorithm', 'recursive', 'iterate', 'traverse', 'walk',
+            'dfs', 'bfs', 'dijkstra', 'binary', 'merge', 'quick',
+            'heap', 'tree', 'graph', 'dynamic', 'greedy', 'backtrack'
+        ]
+        
+        for pattern in algorithm_patterns:
+            if pattern in name_lower:
+                score += 3.0
+                reasons.append(f"algorithm pattern '{pattern}' in name")
+        
+        # 3. Analyze code complexity indicators
+        if code:
+            # Loop indicators
+            loop_patterns = ['for ', 'while ', 'foreach', 'map(', 'filter(', 'reduce(']
+            loop_count = sum(code_lower.count(pattern) for pattern in loop_patterns)
+            if loop_count > 0:
+                score += min(loop_count * 1.5, 4.0)
+                reasons.append(f"{loop_count} loop(s) detected")
+            
+            # Nested loops (strong algorithm indicator)
+            if loop_count > 1 and ('for ' in code_lower or 'while ' in code_lower):
+                nested_score = 2.0
+                score += nested_score
+                reasons.append("nested loops detected")
+            
+            # Recursion indicators
+            if func.name in code and 'return ' in code_lower:
+                score += 2.5
+                reasons.append("recursion detected")
+            
+            # Mathematical operations
+            math_patterns = ['+', '-', '*', '/', '%', '**', 'pow(', 'sqrt(', 'abs(', 'min(', 'max(']
+            math_count = sum(code_lower.count(pattern) for pattern in math_patterns)
+            if math_count > 3:
+                score += min(math_count * 0.3, 2.0)
+                reasons.append(f"{math_count} mathematical operations")
+            
+            # Conditional complexity
+            condition_patterns = ['if ', 'elif ', 'else:', 'switch', 'case', '?', 'and ', 'or ']
+            condition_count = sum(code_lower.count(pattern) for pattern in condition_patterns)
+            if condition_count > 2:
+                score += min(condition_count * 0.5, 2.0)
+                reasons.append(f"{condition_count} conditional statements")
+            
+            # Data structure operations
+            ds_patterns = ['append(', 'push(', 'pop(', 'insert(', 'remove(', 'sort()', 'reverse()']
+            ds_count = sum(code_lower.count(pattern) for pattern in ds_patterns)
+            if ds_count > 1:
+                score += min(ds_count * 0.8, 2.0)
+                reasons.append(f"{ds_count} data structure operations")
+        
+        # 4. Function length consideration
+        if func.line_count > 10:
+            score += 1.0
+            reasons.append(f"substantial function ({func.line_count} lines)")
+        elif func.line_count < 3:
+            score -= 1.0
+            reasons.append(f"very short function ({func.line_count} lines)")
+        
+        # 5. Business logic patterns
+        business_patterns = [
+            'business', 'logic', 'rule', 'policy', 'workflow',
+            'process', 'calculate', 'compute', 'determine',
+            'evaluate', 'assess', 'analyze', 'validate'
+        ]
+        
+        for pattern in business_patterns:
+            if pattern in name_lower:
+                score += 2.0
+                reasons.append(f"business logic pattern '{pattern}'")
+        
+        # 6. Language-specific patterns
+        if language == 'python':
+            if '__' in func.name:  # Magic methods are usually utility
+                score -= 2.0
+                reasons.append("magic method detected")
+        
+        # Final classification
+        is_algorithm = score > 0.5
+        reason_text = "; ".join(reasons[:3]) if reasons else "no specific patterns detected"
+        
+        return is_algorithm, max(0.0, score), reason_text
+           
 
     def is_available(self) -> bool:
         """Check if tree-sitter is properly initialized"""
@@ -278,10 +395,34 @@ class FunctionCounter:
             
             functions = self._extract_functions(content, language)
             
-            # Optionally include function code
+            # Optionally include function code and classify functions
+            algorithm_count = 0
+            algorithm_breakdown = {}
+            
             if include_code:
                 for func in functions:
                     func.code = self._extract_function_code(content, func.start_line, func.end_line)
+                    
+                    # Classify function as algorithm or utility
+                    is_algo, score, reason = self._classify_function_as_algorithm(func, func.code, language)
+                    func.is_algorithm = is_algo
+                    func.algorithm_score = score
+                    func.classification_reason = reason
+                    
+                    if is_algo:
+                        algorithm_count += 1
+                        algorithm_breakdown[func.type] = algorithm_breakdown.get(func.type, 0) + 1
+            else:
+                # If code is not included, we can still do basic classification based on name
+                for func in functions:
+                    is_algo, score, reason = self._classify_function_as_algorithm(func, "", language)
+                    func.is_algorithm = is_algo
+                    func.algorithm_score = score
+                    func.classification_reason = reason
+                    
+                    if is_algo:
+                        algorithm_count += 1
+                        algorithm_breakdown[func.type] = algorithm_breakdown.get(func.type, 0) + 1
             
             # Create breakdown by function type
             breakdown = {}
@@ -292,8 +433,10 @@ class FunctionCounter:
                 path=file_path,
                 language=language,
                 function_count=len(functions),
+                algorithm_count=algorithm_count,
                 functions=functions,
-                breakdown=breakdown
+                breakdown=breakdown,
+                algorithm_breakdown=algorithm_breakdown
             )
             
         except Exception as e:
@@ -306,7 +449,7 @@ class FunctionCounter:
                          include_code: bool = False) -> FunctionAnalysisResult:
         """Analyze all supported files in a directory"""
         if not self.is_available():
-            return FunctionAnalysisResult(0, 0, {}, [])
+            return FunctionAnalysisResult(0, 0, 0, {}, [])
 
         include_patterns = include_patterns or ['*.py', '*.js', '*.jsx', '*.ts', '*.tsx']
         exclude_patterns = exclude_patterns or ['**/node_modules/**', '**/__pycache__/**', '**/.*/**']
@@ -314,6 +457,7 @@ class FunctionCounter:
         directory = Path(directory_path)
         files_analyzed = []
         total_functions = 0
+        total_algorithms = 0
         languages_stats = {}
         
         # Find all matching files
@@ -328,16 +472,19 @@ class FunctionCounter:
                     if analysis:
                         files_analyzed.append(analysis)
                         total_functions += analysis.function_count
+                        total_algorithms += analysis.algorithm_count
                         
                         # Update language stats
                         lang = analysis.language
                         if lang not in languages_stats:
-                            languages_stats[lang] = {'files': 0, 'functions': 0}
+                            languages_stats[lang] = {'files': 0, 'functions': 0, 'algorithms': 0}
                         languages_stats[lang]['files'] += 1
                         languages_stats[lang]['functions'] += analysis.function_count
+                        languages_stats[lang]['algorithms'] += analysis.algorithm_count
         
         return FunctionAnalysisResult(
             total_functions=total_functions,
+            total_algorithms=total_algorithms,
             total_files=len(files_analyzed),
             languages=languages_stats,
             files=files_analyzed
