@@ -1,12 +1,15 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Badge } from './ui/badge';
 import { Progress } from './ui/progress';
 import { Button } from './ui/button';
-import { ChevronLeft, ChevronRight, BarChart3 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, BarChart3, AlertCircle } from 'lucide-react';
+import { useChatContext } from '../contexts/ChatContext';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface AnalysisPanelProps {
   isCollapsed?: boolean;
@@ -14,47 +17,43 @@ interface AnalysisPanelProps {
 }
 
 export function AnalysisPanel({ isCollapsed = false, onToggleCollapse }: AnalysisPanelProps) {
-  // Mock data for demonstration
+  const { selectedAlgorithm } = useChatContext();
+  
+  // Extract data from selected algorithm or use defaults
+  const algorithm = selectedAlgorithm?.algorithm;
+  const aiAnalysis = selectedAlgorithm?.aiAnalysis;
+  
   const metrics = {
-    timeComplexity: 'O(n²)',
-    spaceComplexity: 'O(1)',
-    linesOfCode: 23,
-    cyclomaticComplexity: 4,
-    maintainabilityIndex: 78
+    timeComplexity: aiAnalysis?.complexityAnalysis?.match(/Time.*?O\([^)]+\)/i)?.[0] || 'Not analyzed',
+    spaceComplexity: aiAnalysis?.complexityAnalysis?.match(/Space.*?O\([^)]+\)/i)?.[0] || 'Not analyzed',
+    linesOfCode: algorithm?.line_count || 0,
+    cyclomaticComplexity: 4, // This would need to be calculated or provided by backend
+    maintainabilityIndex: 78 // This would need to be calculated or provided by backend
   };
 
-  const flowSteps = [
-    { id: 1, step: 'Initialize outer loop (i = 0 to n-1)', type: 'loop' },
-    { id: 2, step: 'Initialize inner loop (j = 0 to n-i-1)', type: 'loop' },
-    { id: 3, step: 'Compare arr[j] with arr[j+1]', type: 'condition' },
-    { id: 4, step: 'Swap if arr[j] > arr[j+1]', type: 'action' },
-    { id: 5, step: 'Continue inner loop', type: 'loop' },
-    { id: 6, step: 'Continue outer loop', type: 'loop' },
-    { id: 7, step: 'Return sorted array', type: 'return' }
-  ];
+  // Generate flow steps from flowchart data if available
+  const flowSteps = aiAnalysis?.flowchart ? 
+    aiAnalysis.flowchart.split('\n')
+      .filter(line => line.trim())
+      .map((step, index) => ({
+        id: index + 1,
+        step: step.trim(),
+        type: step.toLowerCase().includes('loop') ? 'loop' :
+              step.toLowerCase().includes('if') || step.toLowerCase().includes('condition') ? 'condition' :
+              step.toLowerCase().includes('return') ? 'return' : 'action'
+      })) : 
+    [{ id: 1, step: 'No flow diagram available. Select an algorithm using @ in the chat.', type: 'action' }];
 
-  const pseudocode = `ALGORITHM BubbleSort
-INPUT: Array arr of n elements
-OUTPUT: Sorted array in ascending order
-
-BEGIN
-  FOR i = 0 TO n-2 DO
-    FOR j = 0 TO n-i-2 DO
-      IF arr[j] > arr[j+1] THEN
-        SWAP arr[j] AND arr[j+1]
-      END IF
-    END FOR
-  END FOR
-  RETURN arr
-END`;
+  const pseudocode = aiAnalysis?.pseudocode || 
+    'No pseudocode available. Select an algorithm using @ in the chat to see its pseudocode.';
 
   const getStepColor = (type: string) => {
     switch (type) {
-      case 'loop': return 'bg-blue-100 border-blue-300 text-blue-800';
-      case 'condition': return 'bg-yellow-100 border-yellow-300 text-yellow-800';
-      case 'action': return 'bg-green-100 border-green-300 text-green-800';
-      case 'return': return 'bg-purple-100 border-purple-300 text-purple-800';
-      default: return 'bg-gray-100 border-gray-300 text-gray-800';
+      case 'loop': return 'bg-muted/50 border-border';
+      case 'condition': return 'bg-muted/70 border-border';
+      case 'action': return 'bg-muted/30 border-border';
+      case 'return': return 'bg-muted/60 border-border';
+      default: return 'bg-muted/40 border-border';
     }
   };
 
@@ -85,7 +84,9 @@ END`;
       <Card className="flex-1 flex flex-col">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">Algorithm Analysis</CardTitle>
+            <CardTitle className="text-lg">
+              {algorithm ? `${algorithm.name} Analysis` : 'Algorithm Analysis'}
+            </CardTitle>
             <Button
               variant="ghost"
               size="sm"
@@ -95,25 +96,62 @@ END`;
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
+          {algorithm && (
+            <div className="text-sm text-muted-foreground">
+              {algorithm.type} • Lines {algorithm.start_line}-{algorithm.end_line}
+            </div>
+          )}
         </CardHeader>
         <CardContent className="flex-1 p-4">
-          <Tabs defaultValue="metrics" className="flex-1 flex flex-col">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="metrics">Metrics</TabsTrigger>
-              <TabsTrigger value="flow">Flow Diagram</TabsTrigger>
-              <TabsTrigger value="pseudocode">Pseudocode</TabsTrigger>
-            </TabsList>
+          {!algorithm ? (
+            <div className="flex flex-col items-center justify-center h-full text-center p-6">
+              <div className="max-w-md">
+                <div className="bg-muted/30 p-4 rounded-xl border border-border mb-4">
+                  <div className="bg-muted p-3 rounded-full w-fit mx-auto mb-3">
+                    <BarChart3 className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">
+                    Analysis Ready
+                  </h3>
+                  <p className="text-muted-foreground text-sm">
+                    Use <span className="bg-muted px-2 py-1 rounded font-mono text-xs">@</span> in chat to analyze algorithms
+                  </p>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2 text-xs mb-4">
+                  <div className="bg-background p-2 rounded border border-border">
+                    <div className="font-medium">📊 Metrics</div>
+                  </div>
+                  <div className="bg-background p-2 rounded border border-border">
+                    <div className="font-medium">🔄 Flow</div>
+                  </div>
+                  <div className="bg-background p-2 rounded border border-border">
+                    <div className="font-medium">📝 Pseudocode</div>
+                  </div>
+                  <div className="bg-background p-2 rounded border border-border">
+                    <div className="font-medium">🎯 Quality</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <Tabs defaultValue="metrics" className="flex-1 flex flex-col">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="metrics">Metrics</TabsTrigger>
+                <TabsTrigger value="flow">Flow Diagram</TabsTrigger>
+                <TabsTrigger value="pseudocode">Pseudocode</TabsTrigger>
+              </TabsList>
             
             <TabsContent value="metrics" className="flex-1 mt-4 space-y-4">
               <div className="grid gap-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-3 border rounded-lg">
                     <div className="text-sm font-medium text-muted-foreground">Time Complexity</div>
-                    <div className="text-2xl font-bold text-red-600">{metrics.timeComplexity}</div>
+                    <div className="text-2xl font-bold">{metrics.timeComplexity}</div>
                   </div>
                   <div className="p-3 border rounded-lg">
                     <div className="text-sm font-medium text-muted-foreground">Space Complexity</div>
-                    <div className="text-2xl font-bold text-green-600">{metrics.spaceComplexity}</div>
+                    <div className="text-2xl font-bold">{metrics.spaceComplexity}</div>
                   </div>
                 </div>
                 
@@ -143,10 +181,17 @@ END`;
                 <div className="pt-4 border-t">
                   <h4 className="font-medium mb-2">Algorithm Classification</h4>
                   <div className="flex flex-wrap gap-2">
-                    <Badge>Sorting Algorithm</Badge>
-                    <Badge variant="outline">Comparison-based</Badge>
-                    <Badge variant="outline">In-place</Badge>
-                    <Badge variant="outline">Stable</Badge>
+                    <Badge variant="secondary">
+                      Score: {algorithm?.algorithm_score?.toFixed(2) || 'N/A'}
+                    </Badge>
+                    {algorithm?.classification_reason && (
+                      <Badge variant="outline">
+                        {algorithm.classification_reason}
+                      </Badge>
+                    )}
+                    {algorithm?.is_algorithm && (
+                      <Badge variant="outline">Algorithm</Badge>
+                    )}
                   </div>
                 </div>
               </div>
@@ -175,19 +220,19 @@ END`;
                   <h5 className="font-medium mb-2">Flow Legend</h5>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded bg-blue-200 border border-blue-300"></div>
+                      <div className="w-3 h-3 rounded bg-muted/50 border border-border"></div>
                       <span>Loop</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded bg-yellow-200 border border-yellow-300"></div>
+                      <div className="w-3 h-3 rounded bg-muted/70 border border-border"></div>
                       <span>Condition</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded bg-green-200 border border-green-300"></div>
+                      <div className="w-3 h-3 rounded bg-muted/30 border border-border"></div>
                       <span>Action</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded bg-purple-200 border border-purple-300"></div>
+                      <div className="w-3 h-3 rounded bg-muted/60 border border-border"></div>
                       <span>Return</span>
                     </div>
                   </div>
@@ -195,36 +240,40 @@ END`;
               </div>
             </TabsContent>
             
-            <TabsContent value="pseudocode" className="flex-1 mt-4">
+            <TabsContent value="pseudocode" className="flex-1 mt-4 space-y-4">
               <div className="space-y-4">
-                <h4 className="font-medium">Algorithm Pseudocode</h4>
-                <div className="bg-muted p-4 rounded-lg font-mono text-sm whitespace-pre-line border">
-                  {pseudocode}
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="p-3 border rounded-lg">
-                    <div className="font-medium mb-1">Best Case</div>
-                    <div className="text-muted-foreground">O(n) - Already sorted</div>
-                  </div>
-                  <div className="p-3 border rounded-lg">
-                    <div className="font-medium mb-1">Worst Case</div>
-                    <div className="text-muted-foreground">O(n²) - Reverse sorted</div>
+                <div>
+                  <h4 className="font-medium mb-2">Pseudocode</h4>
+                  <div className="bg-muted p-4 rounded-lg text-sm">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {pseudocode}
+                    </ReactMarkdown>
                   </div>
                 </div>
                 
-                <div className="p-3 border rounded-lg bg-blue-50">
-                  <div className="font-medium mb-1 text-blue-800">Algorithm Notes</div>
-                  <ul className="text-sm text-blue-700 space-y-1">
-                    <li>• Simple comparison-based sorting algorithm</li>
-                    <li>• Repeatedly steps through the list</li>
-                    <li>• Compares adjacent elements and swaps them if wrong order</li>
-                    <li>• Named for the way smaller elements "bubble" to the top</li>
-                  </ul>
-                </div>
+                {aiAnalysis?.complexityAnalysis && (
+                  <div>
+                    <h4 className="font-medium mb-2">Complexity Analysis</h4>
+                    <div className="text-sm text-muted-foreground">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {aiAnalysis.complexityAnalysis}
+                      </ReactMarkdown>
+                    </div>
+                  </div>
+                )}
+                
+                {algorithm?.classification_reason && (
+                  <div>
+                    <h4 className="font-medium mb-2">Algorithm Details</h4>
+                    <p className="text-sm text-muted-foreground">
+                      {algorithm.classification_reason}
+                    </p>
+                  </div>
+                )}
               </div>
             </TabsContent>
           </Tabs>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -6,7 +6,7 @@ Focus on business impact, costs, and practical metrics.
 
 class BusinessMetricsPrompts:
     """Prompts focused on business value and metrics for algorithms."""
-    
+
     # System prompt for business analysis
     BUSINESS_ANALYSIS_SYSTEM = """
 You are a business analyst specializing in evaluating software algorithms from a business perspective.
@@ -23,9 +23,11 @@ Focus on:
 Provide practical, actionable insights that help business stakeholders understand the importance and implications of the analyzed code.
 Always structure your analysis in clear, business-friendly language while maintaining technical accuracy.
 """
-    
+
     @staticmethod
-    def get_short_description_prompt(function_code: str, function_name: str, language: str) -> str:
+    def get_short_description_prompt(
+        function_code: str, function_name: str, language: str
+    ) -> str:
         """Generate a business-focused short description of the algorithm."""
         return f"""Analyze this {language} function and provide a concise business description:
 
@@ -63,7 +65,9 @@ Return ONLY a JSON object with this exact structure:
 Return only the JSON object, no additional formatting or explanation."""
 
     @staticmethod
-    def get_business_metrics_prompt(function_code: str, function_name: str, language: str) -> str:
+    def get_business_metrics_prompt(
+        function_code: str, function_name: str, language: str
+    ) -> str:
         """Generate business metrics analysis for the algorithm."""
         return f"""Analyze this {language} function and provide business metrics:
 
@@ -104,7 +108,9 @@ Return ONLY a JSON object with this exact structure:
 Return only the JSON object, no additional formatting or explanation."""
 
     @staticmethod
-    def get_business_risk_assessment_prompt(function_code: str, function_name: str, language: str) -> str:
+    def get_business_risk_assessment_prompt(
+        function_code: str, function_name: str, language: str
+    ) -> str:
         """Assess business risks associated with the algorithm."""
         return f"""Analyze this {language} function for business risks:
 
@@ -138,7 +144,9 @@ Keep analysis practical and focused on business impact, not technical details.
 Return only the JSON object, no additional formatting or explanation."""
 
     @staticmethod
-    def get_algorithm_classification_prompt(function_code: str, function_name: str, language: str) -> str:
+    def get_algorithm_classification_prompt(
+        function_code: str, function_name: str, language: str
+    ) -> str:
         """Classify algorithm for business categorization."""
         return f"""Classify this {language} function for business categorization:
 

@@ -234,17 +234,17 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ functionInfo, repositoryI
       {isOpen && (
         <div className="fixed bottom-24 right-6 z-40 w-96 max-w-[calc(100vw-3rem)] h-[500px] bg-white rounded-xl shadow-2xl border border-gray-200 flex flex-col animate-in slide-in-from-bottom-4 duration-300">
           {/* Header */}
-          <div className="p-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-xl">
+          <div className="p-4 bg-background border-b rounded-t-xl">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                <h3 className="font-semibold">AI Assistant</h3>
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <h3 className="font-semibold text-foreground">AI Assistant</h3>
               </div>
               <div className="flex items-center space-x-2">
                 <button
                   onClick={handleClearChat}
                   title="Clear chat"
-                  className="text-white/80 hover:text-white p-1 rounded hover:bg-white/10 transition-colors"
+                  className="text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-muted transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -253,7 +253,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ functionInfo, repositoryI
                 <button
                   onClick={toggleChat}
                   title="Minimize chat"
-                  className="text-white/80 hover:text-white p-1 rounded hover:bg-white/10 transition-colors"
+                  className="text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-muted transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -262,15 +262,15 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ functionInfo, repositoryI
               </div>
             </div>
                          {functionInfo ? (
-               <p className="text-blue-100 text-sm mt-1 truncate">
+               <p className="text-muted-foreground text-sm mt-1 truncate">
                  Analyzing: {functionInfo.name}
                </p>
              ) : repositoryInfo ? (
-               <p className="text-blue-100 text-sm mt-1 truncate">
+               <p className="text-muted-foreground text-sm mt-1 truncate">
                  Repository: {repositoryInfo.name}
                </p>
              ) : (
-               <p className="text-blue-100 text-sm mt-1">
+               <p className="text-muted-foreground text-sm mt-1">
                  General Assistant
                </p>
              )}

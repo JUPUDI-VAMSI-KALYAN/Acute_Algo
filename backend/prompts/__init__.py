@@ -13,11 +13,11 @@ from .prompt_config import PromptConfig, PromptSelector, AnalysisType, USAGE_EXA
 
 __all__ = [
     "AlgorithmAnalysisPrompts",
-    "BusinessMetricsPrompts", 
+    "BusinessMetricsPrompts",
     "CodeAnalysisPrompts",
     "ChatPrompts",
     "PromptConfig",
     "PromptSelector",
     "AnalysisType",
-    "USAGE_EXAMPLES"
+    "USAGE_EXAMPLES",
 ]

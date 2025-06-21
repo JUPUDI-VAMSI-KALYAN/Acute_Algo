@@ -6,31 +6,25 @@ import {
   SidebarInset,
 } from '@/components/ui/sidebar';
 import { SiteHeader } from '@/components/site-header';
-import { useEffect, useState, Suspense } from 'react';
+import { ChatAssistant } from '@/components';
+import { useEffect, useState, Suspense, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from "sonner";
 import { AnalysisData, analyzeAndSaveRepository, getRepositoryAnalysis } from '@/lib/api';
+import { useChatContext, ChatProvider } from '@/contexts/ChatContext';
 
 function DashboardContent({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { setCurrentRepository } = useChatContext();
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
   const [githubUrl, setGithubUrl] = useState<string | undefined>(undefined);
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  useEffect(() => {
-    const repoFromUrl = searchParams.get('repo');
-    
-    if (repoFromUrl) {
-      // Load repository analysis data for the site header
-      loadRepositoryAnalysis(repoFromUrl);
-    }
-  }, [searchParams]);
-
-  const loadRepositoryAnalysis = async (repositoryId: string) => {
+  const loadRepositoryAnalysis = useCallback(async (repositoryId: string) => {
     try {
       const data = await getRepositoryAnalysis(repositoryId);
       
@@ -62,11 +56,26 @@ function DashboardContent({
       
       setAnalysisData(analysisData);
       setGithubUrl(data.repository.githubUrl);
+      
+      // Set repository information in ChatContext
+      setCurrentRepository({
+        id: parseInt(repositoryId),
+        name: data.repository.name || 'Unknown Repository'
+      });
     } catch (error) {
       console.error('Failed to load repository analysis:', error);
       // Don't show error toast here as it's background loading for header
     }
-  };
+  }, [setCurrentRepository]);
+
+  useEffect(() => {
+    const repoFromUrl = searchParams.get('repo');
+    
+    if (repoFromUrl) {
+      // Load repository analysis data for the site header
+      loadRepositoryAnalysis(repoFromUrl);
+    }
+  }, [searchParams, loadRepositoryAnalysis]);
 
   const handleReset = () => {
     router.push('/');
@@ -110,6 +119,10 @@ function DashboardContent({
         />
         {children}
       </SidebarInset>
+      <ChatAssistant 
+        repositoryInfo={analysisData?.repositoryName}
+        functionInfo={analysisData?.functionAnalysis ? `${analysisData.functionAnalysis.totalFunctions} functions, ${analysisData.functionAnalysis.totalAlgorithms} algorithms` : undefined}
+      />
     </SidebarProvider>
   );
 }
@@ -120,8 +133,10 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading...</div>}>
-      <DashboardContent>{children}</DashboardContent>
-    </Suspense>
+    <ChatProvider>
+      <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading...</div>}>
+        <DashboardContent>{children}</DashboardContent>
+      </Suspense>
+    </ChatProvider>
   );
-} 
+}
