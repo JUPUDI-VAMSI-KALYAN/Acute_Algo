@@ -450,14 +450,30 @@ export const getRepositoryFunctions = async (
   repositoryId: number, 
   page: number = 1, 
   limit: number = 20, 
-  algorithmOnly: boolean = false
+  algorithmOnly: boolean = false,
+  searchTerm?: string,
+  languageFilter?: string,
+  scoreFilter?: string,
 ): Promise<{ functions: unknown[], total: number, page: number, limit: number, total_pages: number }> => {
   const params = new URLSearchParams({
     page: page.toString(),
     limit: limit.toString(),
-    algorithm_only: algorithmOnly.toString()
+    algorithm_only: algorithmOnly.toString(),
   });
-  const response = await api.get(`/api/database/repository/${repositoryId}/functions?${params}`);
+  
+  if (searchTerm) {
+    params.append('search_term', searchTerm);
+  }
+  
+  if (languageFilter && languageFilter !== 'all') {
+    params.append('language_filter', languageFilter);
+  }
+  
+  if (scoreFilter && scoreFilter !== 'all') {
+    params.append('score_filter', scoreFilter);
+  }
+
+  const response = await api.get(`/api/database/repository/${repositoryId}/functions?${params.toString()}`);
   return response.data;
 };
 

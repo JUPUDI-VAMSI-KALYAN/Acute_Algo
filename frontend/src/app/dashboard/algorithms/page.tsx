@@ -17,6 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Filter, X } from 'lucide-react';
+import { DataTablePagination } from '@/components/Dashboard/DataTablePagination';
 import Link from 'next/link';
 
 type ScoreFilter = 'all' | 'high' | 'medium' | 'low';
@@ -25,17 +26,27 @@ type LanguageFilter = 'all' | string;
 export default function AlgorithmsPage() {
   const [algorithms, setAlgorithms] = useState<AlgorithmFunction[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pagination, setPagination] = useState({ page: 1, total: 0, total_pages: 0 });
+  const [pagination, setPagination] = useState({ page: 1, total: 0, total_pages: 0, limit: 20 });
   const [repositoryId, setRepositoryId] = useState<string | null>(null);
   
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [scoreFilter, setScoreFilter] = useState<ScoreFilter>('all');
   const [languageFilter, setLanguageFilter] = useState<LanguageFilter>('all');
+  const [availableLanguages, setAvailableLanguages] = useState<string[]>([]);
   
   const searchParams = useSearchParams();
+
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   useEffect(() => {
     const repoId = searchParams.get('repo');
@@ -44,88 +55,79 @@ export default function AlgorithmsPage() {
     }
   }, [searchParams]);
 
-  const loadAlgorithms = useCallback(async (page: number) => {
+  const loadAlgorithms = useCallback(async (
+    page: number, 
+    limit: number, 
+    searchTerm?: string, 
+    languageFilter?: string,
+    scoreFilter?: ScoreFilter
+  ) => {
     if (!repositoryId) return;
 
-    if (page === 1) {
-      setLoading(true);
-    } else {
-      setLoadingMore(true);
-    }
+    setLoading(true);
     setError(null);
 
     try {
-      const result = await getRepositoryFunctions(parseInt(repositoryId), page, 20, true);
+      const result = await getRepositoryFunctions(
+        parseInt(repositoryId), 
+        page, 
+        limit, 
+        true, // Always get algorithms only
+        searchTerm,
+        languageFilter,
+        scoreFilter
+      );
+      
       const newAlgorithms = result.functions as AlgorithmFunction[];
+      setAlgorithms(newAlgorithms);
+      setPagination({ 
+        page: result.page, 
+        total: result.total, 
+        total_pages: result.total_pages,
+        limit: result.limit
+      });
 
-      if (page === 1) {
-        setAlgorithms(newAlgorithms);
-      } else {
-        setAlgorithms(prev => [...prev, ...newAlgorithms]);
-      }
-      setPagination({ page: result.page, total: result.total, total_pages: result.total_pages });
+      // Extract available languages from the current data
+      const languages = new Set(newAlgorithms.map(algo => algo.file_analyses.language));
+      setAvailableLanguages(Array.from(languages).sort());
+      
     } catch (err) {
       setError('Failed to load algorithms.');
       console.error(err);
     } finally {
       setLoading(false);
-      setLoadingMore(false);
     }
   }, [repositoryId]);
 
+  // Load algorithms when filters change
   useEffect(() => {
     if (repositoryId) {
-      loadAlgorithms(1);
+      loadAlgorithms(1, pagination.limit, debouncedSearchTerm, languageFilter, scoreFilter);
     }
-  }, [repositoryId, loadAlgorithms]);
+  }, [repositoryId, debouncedSearchTerm, languageFilter, scoreFilter, pagination.limit, loadAlgorithms]);
 
-  // Get unique languages for filter
-  const availableLanguages = useMemo(() => {
-    const languages = new Set(algorithms.map(algo => algo.file_analyses.language));
-    return Array.from(languages).sort();
-  }, [algorithms]);
+  const handlePageChange = (newPage: number) => {
+    loadAlgorithms(newPage, pagination.limit, debouncedSearchTerm, languageFilter, scoreFilter);
+  };
 
-  // Filter algorithms based on all filters
-  const filteredAlgorithms = useMemo(() => {
-    return algorithms.filter(algo => {
-      // Search filter
-      const matchesSearch = searchTerm === '' || 
-        algo.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        algo.file_analyses.file_path.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      // Score filter
-      const matchesScore = scoreFilter === 'all' || 
-        (scoreFilter === 'high' && algo.algorithm_score >= 0.8) ||
-        (scoreFilter === 'medium' && algo.algorithm_score >= 0.6 && algo.algorithm_score < 0.8) ||
-        (scoreFilter === 'low' && algo.algorithm_score < 0.6);
-      
-      // Language filter
-      const matchesLanguage = languageFilter === 'all' || 
-        algo.file_analyses.language === languageFilter;
-      
-      return matchesSearch && matchesScore && matchesLanguage;
-    });
-  }, [algorithms, searchTerm, scoreFilter, languageFilter]);
-
-  const handleLoadMore = () => {
-    if (pagination.page < pagination.total_pages) {
-      loadAlgorithms(pagination.page + 1);
-    }
+  const handlePerPageChange = (newLimit: number) => {
+    loadAlgorithms(1, newLimit, debouncedSearchTerm, languageFilter, scoreFilter);
   };
 
   const clearFilters = () => {
     setSearchTerm('');
+    setDebouncedSearchTerm('');
     setScoreFilter('all');
     setLanguageFilter('all');
   };
 
   const activeFiltersCount = useMemo(() => {
     let count = 0;
-    if (searchTerm !== '') count++;
+    if (debouncedSearchTerm !== '') count++;
     if (scoreFilter !== 'all') count++;
     if (languageFilter !== 'all') count++;
     return count;
-  }, [searchTerm, scoreFilter, languageFilter]);
+  }, [debouncedSearchTerm, scoreFilter, languageFilter]);
   
   const getLanguageColor = (language: string) => {
     const colors: Record<string, string> = {
@@ -217,7 +219,7 @@ export default function AlgorithmsPage() {
     );
   }
 
-  if (algorithms.length === 0) {
+  if (algorithms.length === 0 && !loading) {
     return (
       <main className="flex h-full flex-col gap-4 p-4 lg:gap-6 lg:p-6">
         <div className="flex items-center">
@@ -229,8 +231,16 @@ export default function AlgorithmsPage() {
           <div className="text-center">
             <h3 className="text-xl font-semibold mb-2">No Algorithms Found</h3>
             <p className="text-muted-foreground">
-              The selected repository does not contain any functions classified as algorithms.
+              {activeFiltersCount > 0 
+                ? "No algorithms match the current filters. Try adjusting your search criteria."
+                : "The selected repository does not contain any functions classified as algorithms."
+              }
             </p>
+            {activeFiltersCount > 0 && (
+              <Button onClick={clearFilters} className="mt-4">
+                Clear Filters
+              </Button>
+            )}
           </div>
         </div>
       </main>
@@ -251,7 +261,7 @@ export default function AlgorithmsPage() {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base">
-              Identified Algorithms ({filteredAlgorithms.length} of {algorithms.length})
+              Identified Algorithms ({pagination.total} total)
             </CardTitle>
             {activeFiltersCount > 0 && (
               <Button variant="outline" size="sm" onClick={clearFilters}>
@@ -328,7 +338,7 @@ export default function AlgorithmsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredAlgorithms.map((algo) => {
+                {algorithms.map((algo) => {
                   const scoreBadge = getScoreBadge(algo.algorithm_score);
                   return (
                     <TableRow key={algo.id} className="cursor-pointer hover:bg-muted/50">
@@ -374,14 +384,16 @@ export default function AlgorithmsPage() {
           </div>
         </div>
 
-        {/* Load More Button - Fixed at bottom */}
-        {pagination.page < pagination.total_pages && (
-          <div className="border-t p-4 bg-background shrink-0">
-            <div className="text-center">
-              <Button onClick={handleLoadMore} disabled={loadingMore} variant="outline">
-                {loadingMore ? 'Loading...' : 'Load More'}
-              </Button>
-            </div>
+        {/* Pagination Controls - Fixed at bottom */}
+        {pagination.total > 0 && (
+          <div className="border-t bg-background shrink-0">
+            <DataTablePagination
+              page={pagination.page}
+              count={pagination.total}
+              perPage={pagination.limit}
+              onPageChange={handlePageChange}
+              onPerPageChange={handlePerPageChange}
+            />
           </div>
         )}
       </Card>

@@ -600,8 +600,11 @@ class DatabaseService:
         page: int = 1,
         limit: int = 20,
         algorithm_only: bool = False,
+        search_term: str = None,
+        language_filter: str = None,
+        score_filter: str = None,
     ) -> Optional[Dict[str, Any]]:
-        """Get repository functions with pagination"""
+        """Get repository functions with pagination and filtering"""
         try:
             # Get latest analysis session
             session_result = (
@@ -621,12 +624,10 @@ class DatabaseService:
             # Calculate offset
             offset = (page - 1) * limit
 
-            # Build query using JOIN through file_analyses
-
             # Get file analysis IDs for this session
             file_analyses_result = (
                 self.supabase.table("file_analyses")
-                .select("id")
+                .select("id, file_path, language")
                 .eq("analysis_session_id", session_id)
                 .execute()
             )
@@ -640,46 +641,82 @@ class DatabaseService:
                     "total_pages": 0,
                 }
 
-            file_analysis_ids = [fa["id"] for fa in file_analyses_result.data]
+            # Create mapping for file analysis data
+            file_analysis_map = {
+                fa["id"]: {"file_path": fa["file_path"], "language": fa["language"]}
+                for fa in file_analyses_result.data
+            }
+            file_analysis_ids = list(file_analysis_map.keys())
 
-            # Build query for functions with proper column names
+            # Build base query for functions
             query = (
                 self.supabase.table("functions")
                 .select(
-                    "id, name, type, start_line, end_line, line_count, is_algorithm, algorithm_score, classification_reason, file_analyses(file_path, language)"
+                    "id, name, type, start_line, end_line, line_count, is_algorithm, algorithm_score, classification_reason, file_analysis_id"
                 )
                 .in_("file_analysis_id", file_analysis_ids)
             )
 
+            # Apply algorithm filter
             if algorithm_only:
                 query = query.eq("is_algorithm", True)
 
-            # Get total count by fetching all IDs first
-            count_query = (
-                self.supabase.table("functions")
-                .select("id")
-                .in_("file_analysis_id", file_analysis_ids)
-            )
+            # Get all matching functions for filtering
+            all_functions_result = query.execute()
+            all_functions = all_functions_result.data or []
 
-            if algorithm_only:
-                count_query = count_query.eq("is_algorithm", True)
+            # Add file analysis data to functions
+            for func in all_functions:
+                file_analysis_id = func["file_analysis_id"]
+                if file_analysis_id in file_analysis_map:
+                    func["file_analyses"] = file_analysis_map[file_analysis_id]
 
-            count_result = count_query.execute()
-            total_count = len(count_result.data) if count_result.data else 0
+            # Apply client-side filters (since Supabase doesn't support complex text search easily)
+            filtered_functions = all_functions
 
-            # Get paginated results
-            result = (
-                query.order("algorithm_score", desc=True)
-                .range(offset, offset + limit - 1)
-                .execute()
-            )
+            # Search filter
+            if search_term:
+                search_term_lower = search_term.lower()
+                filtered_functions = [
+                    func for func in filtered_functions
+                    if (search_term_lower in func["name"].lower() or
+                        search_term_lower in func.get("file_analyses", {}).get("file_path", "").lower())
+                ]
+
+            # Language filter
+            if language_filter and language_filter != "all":
+                filtered_functions = [
+                    func for func in filtered_functions
+                    if func.get("file_analyses", {}).get("language") == language_filter
+                ]
+
+            # Score filter (for algorithms page)
+            if score_filter and score_filter != "all":
+                if score_filter == "high":
+                    filtered_functions = [func for func in filtered_functions if func["algorithm_score"] >= 0.8]
+                elif score_filter == "medium":
+                    filtered_functions = [func for func in filtered_functions if 0.6 <= func["algorithm_score"] < 0.8]
+                elif score_filter == "low":
+                    filtered_functions = [func for func in filtered_functions if func["algorithm_score"] < 0.6]
+
+            # Sort by algorithm score (descending)
+            filtered_functions.sort(key=lambda x: x["algorithm_score"], reverse=True)
+
+            # Calculate pagination
+            total_count = len(filtered_functions)
+            total_pages = (total_count + limit - 1) // limit
+
+            # Apply pagination
+            start_idx = offset
+            end_idx = offset + limit
+            paginated_functions = filtered_functions[start_idx:end_idx]
 
             return {
-                "functions": result.data or [],
+                "functions": paginated_functions,
                 "total": total_count,
                 "page": page,
                 "limit": limit,
-                "total_pages": (total_count + limit - 1) // limit,
+                "total_pages": total_pages,
             }
         except Exception as e:
             print(f"Error getting repository functions: {e}")

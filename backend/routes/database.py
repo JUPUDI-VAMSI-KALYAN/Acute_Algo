@@ -287,15 +287,29 @@ async def get_repository_overview(repository_id: int):
 
 @router.get("/repository/{repository_id}/functions")
 async def get_repository_functions(
-    repository_id: int, page: int = 1, limit: int = 20, algorithm_only: bool = False
+    repository_id: int, 
+    page: int = 1, 
+    limit: int = 20, 
+    algorithm_only: bool = False,
+    search_term: str = None,
+    language_filter: str = None,
+    score_filter: str = None,
 ):
-    """Get repository functions with pagination"""
+    """Get repository functions with pagination and filtering"""
     try:
         logger.info(
-            f"Getting functions for repository {repository_id}, page {page}, limit {limit}, algorithm_only {algorithm_only}"
+            f"Getting functions for repository {repository_id}, page {page}, limit {limit}, "
+            f"algorithm_only {algorithm_only}, search_term {search_term}, "
+            f"language_filter {language_filter}, score_filter {score_filter}"
         )
         functions_data = await db_service.get_repository_functions(
-            repository_id, page=page, limit=limit, algorithm_only=algorithm_only
+            repository_id, 
+            page=page, 
+            limit=limit, 
+            algorithm_only=algorithm_only,
+            search_term=search_term,
+            language_filter=language_filter,
+            score_filter=score_filter,
         )
         if functions_data is None:
             logger.warning(f"No functions data found for repository {repository_id}")
