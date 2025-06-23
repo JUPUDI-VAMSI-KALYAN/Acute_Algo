@@ -6,6 +6,7 @@ import { Header } from '@/components/Header';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { ThemeProvider } from '@/contexts/ThemeContext';
+import { AuthProvider } from '@/contexts/AuthContext';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -22,7 +23,7 @@ export default function RootLayout({
   }, []);
 
   const isDashboard = pathname.startsWith('/dashboard');
-  const isLogin = pathname === '/login';
+  const isLogin = pathname === '/login' || pathname.startsWith('/auth');
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -30,10 +31,12 @@ export default function RootLayout({
         className={`${inter.className} antialiased bg-background text-foreground min-h-screen`}
       >
         <ThemeProvider>
-          {isMounted && !isDashboard && !isLogin && <Header />}
-          <main className={isMounted && !isDashboard && !isLogin ? 'pt-16' : ''}>
-            {children}
-          </main>
+          <AuthProvider>
+            {isMounted && !isDashboard && !isLogin && <Header />}
+            <main className={isMounted && !isDashboard && !isLogin ? 'pt-16' : ''}>
+              {children}
+            </main>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>
