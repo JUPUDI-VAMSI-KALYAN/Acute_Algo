@@ -134,7 +134,7 @@ export const analysisApi = {
 
 // AI API functions
 export const aiApi = {
-  chat: async (message: string, context?: any) => {
+  chat: async (message: string, context?: Record<string, unknown>) => {
     const response = await api.post('/ai/chat', { message, context });
     return response.data;
   },

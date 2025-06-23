@@ -1,21 +1,21 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { authApi } from '@/lib/api';
+import { authApi, AuthUser } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 
-export default function AuthCallbackPage() {
+function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { refreshUser } = useAuth();
   
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');
   const [error, setError] = useState<string>('');
-  const [userDetails, setUserDetails] = useState<any>(null);
+  const [userDetails, setUserDetails] = useState<AuthUser | null>(null);
   const [hasProcessed, setHasProcessed] = useState(false);
 
   useEffect(() => {
@@ -77,21 +77,23 @@ export default function AuthCallbackPage() {
         } else {
           throw new Error('Authentication failed: No user data received');
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Authentication callback failed:', err);
         
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+        
         // Handle specific case where auth code has already been used
-        if (err.message && err.message.includes('auth code')) {
+        if (errorMessage.includes('auth code')) {
           setError('This authentication link has already been used. Please try logging in again.');
         } else {
-          setError(err.message || 'Authentication failed');
+          setError(errorMessage);
         }
         setStatus('error');
       }
     };
 
     handleCallback();
-  }, []); // Remove dependencies to prevent re-running
+  }, [hasProcessed, searchParams, refreshUser, router]); // Add proper dependencies
 
   const handleRetry = () => {
     router.push('/login');
@@ -202,5 +204,20 @@ export default function AuthCallbackPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function AuthCallbackPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
+          <p className="text-gray-600">Loading authentication...</p>
+        </div>
+      </div>
+    }>
+      <AuthCallbackContent />
+    </Suspense>
   );
 } 

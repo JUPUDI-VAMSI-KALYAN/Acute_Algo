@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,13 +10,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
-import { Settings, User, Bell, Palette, Shield } from 'lucide-react';
+import { Settings, User, Bell, Palette, Shield, Github, Calendar, Mail } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function SettingsPage() {
+  const { user, isLoading } = useAuth();
+
   const [userSettings, setUserSettings] = useState({
-    name: 'Vamsi',
-    email: 'vamsi@acme.com',
+    name: '',
+    email: '',
     company: '',
     bio: '',
   });
@@ -33,7 +37,17 @@ export default function SettingsPage() {
     },
   });
 
-
+  // Update user settings when user data is loaded
+  useEffect(() => {
+    if (user) {
+      setUserSettings({
+        name: user.name || '',
+        email: user.email || '',
+        company: '',
+        bio: '',
+      });
+    }
+  }, [user]);
 
   const handleSaveProfile = () => {
     // TODO: Implement API call to save profile
@@ -45,7 +59,37 @@ export default function SettingsPage() {
     toast.success('Preferences saved successfully!');
   };
 
+  if (isLoading) {
+    return (
+      <main className="flex h-full flex-col gap-4 p-4 lg:gap-6 lg:p-6 overflow-y-auto">
+        <div className="flex items-center gap-2 shrink-0">
+          <Settings className="h-6 w-6" />
+          <h1 className="text-lg font-semibold md:text-2xl text-foreground">
+            Settings
+          </h1>
+        </div>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-muted-foreground">Loading user settings...</div>
+        </div>
+      </main>
+    );
+  }
 
+  if (!user) {
+    return (
+      <main className="flex h-full flex-col gap-4 p-4 lg:gap-6 lg:p-6 overflow-y-auto">
+        <div className="flex items-center gap-2 shrink-0">
+          <Settings className="h-6 w-6" />
+          <h1 className="text-lg font-semibold md:text-2xl text-foreground">
+            Settings
+          </h1>
+        </div>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-muted-foreground">Please log in to view settings.</div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="flex h-full flex-col gap-4 p-4 lg:gap-6 lg:p-6 overflow-y-auto">
@@ -57,6 +101,69 @@ export default function SettingsPage() {
       </div>
 
       <div className="grid gap-6 max-w-4xl">
+        {/* User Information Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Github className="h-5 w-5" />
+              Account Information
+            </CardTitle>
+            <CardDescription>
+              Your GitHub authentication details and account information.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-4">
+              <Avatar className="h-16 w-16">
+                <AvatarImage src={user.avatarUrl || ''} alt={user.name || user.email} />
+                <AvatarFallback className="text-lg">
+                  {user.name ? user.name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="space-y-1">
+                <h3 className="text-lg font-medium">{user.name || 'GitHub User'}</h3>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Mail className="h-4 w-4" />
+                  {user.email}
+                </div>
+                {user.githubUsername && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Github className="h-4 w-4" />
+                    <a 
+                      href={`https://github.com/${user.githubUsername}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:underline"
+                    >
+                      @{user.githubUsername}
+                    </a>
+                  </div>
+                )}
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Calendar className="h-4 w-4" />
+                  Member since {new Date(user.createdAt).toLocaleDateString()}
+                </div>
+              </div>
+            </div>
+            
+            <Separator />
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="font-medium">User ID:</span>
+                <p className="text-muted-foreground font-mono break-all">{user.id}</p>
+              </div>
+              <div>
+                <span className="font-medium">Authentication:</span>
+                <Badge variant="outline" className="ml-2">
+                  <Github className="h-3 w-3 mr-1" />
+                  GitHub OAuth
+                </Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Profile Settings */}
         <Card>
           <CardHeader>
@@ -87,7 +194,11 @@ export default function SettingsPage() {
                   value={userSettings.email}
                   onChange={(e) => setUserSettings(prev => ({ ...prev, email: e.target.value }))}
                   placeholder="Enter your email"
+                  disabled
                 />
+                <p className="text-xs text-muted-foreground">
+                  Email is managed through your GitHub account
+                </p>
               </div>
             </div>
             <div className="space-y-2">
@@ -252,8 +363,6 @@ export default function SettingsPage() {
             </div>
           </CardContent>
         </Card>
-
-
 
         {/* Account Security */}
         <Card>

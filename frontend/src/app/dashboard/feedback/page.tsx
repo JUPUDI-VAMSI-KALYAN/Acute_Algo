@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,14 +9,18 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
-import { MessageSquare, Star, Bug, Lightbulb, Heart, Send } from 'lucide-react';
+import { MessageSquare, Star, Bug, Lightbulb, Heart, Send, Github, User as UserIcon } from 'lucide-react';
 import { submitFeedback, type FeedbackFormData } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function FeedbackPage() {
+  const { user, isLoading } = useAuth();
+
   const [formData, setFormData] = useState<FeedbackFormData>({
-    name: 'Vamsi',
-    email: 'vamsi@acme.com',
+    name: '',
+    email: '',
     category: '',
     subject: '',
     message: '',
@@ -25,6 +29,17 @@ export default function FeedbackPage() {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Update form data when user data is loaded
+  useEffect(() => {
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        name: user.name || '',
+        email: user.email || '',
+      }));
+    }
+  }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,6 +89,38 @@ export default function FeedbackPage() {
     { value: 'compliment', label: 'Compliment', icon: Heart },
   ];
 
+  if (isLoading) {
+    return (
+      <main className="flex h-full flex-col gap-4 p-4 lg:gap-6 lg:p-6 overflow-y-auto">
+        <div className="flex items-center gap-2 shrink-0">
+          <MessageSquare className="h-6 w-6" />
+          <h1 className="text-lg font-semibold md:text-2xl text-foreground">
+            Feedback
+          </h1>
+        </div>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-muted-foreground">Loading...</div>
+        </div>
+      </main>
+    );
+  }
+
+  if (!user) {
+    return (
+      <main className="flex h-full flex-col gap-4 p-4 lg:gap-6 lg:p-6 overflow-y-auto">
+        <div className="flex items-center gap-2 shrink-0">
+          <MessageSquare className="h-6 w-6" />
+          <h1 className="text-lg font-semibold md:text-2xl text-foreground">
+            Feedback
+          </h1>
+        </div>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-muted-foreground">Please log in to submit feedback.</div>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="flex h-full flex-col gap-4 p-4 lg:gap-6 lg:p-6 overflow-y-auto">
       <div className="flex items-center gap-2 shrink-0">
@@ -93,6 +140,39 @@ export default function FeedbackPage() {
             or just want to share your thoughts, we&apos;d love to hear from you.
             </CardDescription>
           </CardHeader>
+        </Card>
+
+        {/* User Information */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <UserIcon className="h-5 w-5" />
+              Feedback From
+            </CardTitle>
+            <CardDescription>
+              Your feedback will be submitted with the following account information.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-4">
+              <Avatar className="h-12 w-12">
+                <AvatarImage src={user.avatarUrl || ''} alt={user.name || user.email} />
+                <AvatarFallback>
+                  {user.name ? user.name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="space-y-1">
+                <h3 className="font-medium">{user.name || 'GitHub User'}</h3>
+                <p className="text-sm text-muted-foreground">{user.email}</p>
+                {user.githubUsername && (
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                    <Github className="h-3 w-3" />
+                    <span>@{user.githubUsername}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
         </Card>
 
         {/* Main Content Grid */}
@@ -118,6 +198,9 @@ export default function FeedbackPage() {
                     placeholder="Your name"
                     required
                   />
+                  <p className="text-xs text-muted-foreground">
+                    From your GitHub account
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
@@ -128,7 +211,11 @@ export default function FeedbackPage() {
                     onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                     placeholder="your.email@example.com"
                     required
+                    disabled
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Managed through your GitHub account
+                  </p>
                 </div>
               </div>
 

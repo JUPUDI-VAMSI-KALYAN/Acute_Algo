@@ -14,7 +14,7 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({
   children, 
   fallback 
 }) => {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {

@@ -14,9 +14,10 @@ export function LoginForm() {
     try {
       setLoginError('');
       await login();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('GitHub login failed:', error);
-      setLoginError(error.message || 'Failed to initiate GitHub login');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to initiate GitHub login';
+      setLoginError(errorMessage);
     }
   };
 

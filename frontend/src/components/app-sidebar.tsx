@@ -27,11 +27,6 @@ import { Button } from './ui/button';
 
 // Move static data outside component to prevent re-renders
 const SIDEBAR_DATA = {
-  user: {
-    name: 'Vamsi',
-    email: 'vamsi@acme.com',
-    avatar: '/avatars/shadcn.jpg',
-  },
   navMain: [
     {
       title: 'Overview',
@@ -113,7 +108,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarContent>
       <SidebarFooter>
         <Separator className="my-2" />
-        <NavUser user={SIDEBAR_DATA.user} />
+        <NavUser />
       </SidebarFooter>
     </Sidebar>
   );
