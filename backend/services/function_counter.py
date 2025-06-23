@@ -64,8 +64,8 @@ class FunctionCounter:
                 "(function_definition name: (identifier) @name) @function",
                 # Method definitions within classes
                 "(class_definition body: (block [(function_definition name: (identifier) @name) @method]))",
-                # Async function definitions
-                "(async_function_definition name: (identifier) @name) @async_function",
+                # Async function definitions (using decorated_definition pattern)
+                "(decorated_definition definition: (function_definition name: (identifier) @name)) @async_function",
                 # Lambda functions (limited support)
                 "(lambda) @lambda",
             ]

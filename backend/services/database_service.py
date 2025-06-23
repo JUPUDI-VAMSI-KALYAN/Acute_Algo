@@ -1,7 +1,6 @@
 import os
 from typing import Dict, List, Optional, Any
 from datetime import datetime, timedelta
-import asyncpg
 from supabase import create_client, Client
 from dotenv import load_dotenv
 
@@ -12,26 +11,16 @@ class DatabaseService:
     """Service for handling Supabase database operations"""
 
     def __init__(self):
-        self.supabase_url = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
-        self.supabase_key = os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
-        self.database_url = os.getenv("DATABASE_URL")
+        self.supabase_url = os.getenv("SUPABASE_URL")
+        self.supabase_key = os.getenv("SUPABASE_ANON_KEY")
+        self.supabase_service_role_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
         if not self.supabase_url or not self.supabase_key:
             raise ValueError("Supabase URL and key must be provided")
 
         self.supabase: Client = create_client(self.supabase_url, self.supabase_key)
-        self.pool: Optional[asyncpg.Pool] = None
 
-    async def init_pool(self):
-        """Initialize asyncpg connection pool for direct PostgreSQL access"""
-        if self.database_url and not self.pool:
-            self.pool = await asyncpg.create_pool(self.database_url)
 
-    async def close_pool(self):
-        """Close the connection pool"""
-        if self.pool:
-            await self.pool.close()
-            self.pool = None
 
     # Repository operations
     async def create_repository(

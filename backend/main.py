@@ -15,19 +15,9 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting Acute Algo API server")
-    try:
-        await db_service.init_pool()
-        logger.info("Database connection pool initialized")
-    except Exception as e:
-        logger.warning(f"Failed to initialize database pool: {e}")
     yield
     # Shutdown
     logger.info("Shutting down Acute Algo API server")
-    try:
-        await db_service.close_pool()
-        logger.info("Database connection pool closed")
-    except Exception as e:
-        logger.warning(f"Error closing database pool: {e}")
 
 
 # Initialize FastAPI app
