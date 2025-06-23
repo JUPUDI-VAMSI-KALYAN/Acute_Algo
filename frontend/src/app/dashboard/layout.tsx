@@ -7,6 +7,7 @@ import {
 } from '@/components/ui/sidebar';
 import { SiteHeader } from '@/components/site-header';
 import { ChatAssistant } from '@/components';
+import { AuthGuard } from '@/components/AuthGuard';
 import { useEffect, useState, Suspense, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from "sonner";
@@ -140,10 +141,12 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ChatProvider>
-      <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading...</div>}>
-        <DashboardContent>{children}</DashboardContent>
-      </Suspense>
-    </ChatProvider>
+    <AuthGuard>
+      <ChatProvider>
+        <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading...</div>}>
+          <DashboardContent>{children}</DashboardContent>
+        </Suspense>
+      </ChatProvider>
+    </AuthGuard>
   );
 }

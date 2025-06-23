@@ -460,3 +460,72 @@ class PublicFeatureListResponse(BaseModel):
     total_pages: int = Field(..., alias="totalPages")
     
     model_config = ConfigDict(populate_by_name=True)
+
+
+# Authentication Models
+class AuthUrlRequest(BaseModel):
+    """Request model for generating auth URL"""
+    redirect_url: str = Field(..., alias="redirectUrl", description="Frontend callback URL")
+    
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class AuthUrlResponse(BaseModel):
+    """Response model for auth URL"""
+    success: bool = Field(default=True, alias="success")
+    auth_url: str = Field(..., alias="authUrl", description="GitHub OAuth URL")
+    
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class AuthCallbackRequest(BaseModel):
+    """Request model for OAuth callback"""
+    code: str = Field(..., alias="code", description="OAuth authorization code")
+    
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class AuthUser(BaseModel):
+    """User authentication model"""
+    id: str = Field(..., alias="id")
+    email: str = Field(..., alias="email")
+    name: Optional[str] = Field(None, alias="name")
+    avatar_url: Optional[str] = Field(None, alias="avatarUrl")
+    github_username: Optional[str] = Field(None, alias="githubUsername")
+    created_at: str = Field(..., alias="createdAt")
+    
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class AuthResponse(BaseModel):
+    """Response model for authentication"""
+    success: bool = Field(default=True, alias="success")
+    user: AuthUser = Field(..., alias="user")
+    access_token: str = Field(..., alias="accessToken")
+    refresh_token: str = Field(..., alias="refreshToken")
+    
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class UserResponse(BaseModel):
+    """Response model for user data"""
+    success: bool = Field(default=True, alias="success")
+    user: AuthUser = Field(..., alias="user")
+    
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class LogoutResponse(BaseModel):
+    """Response model for logout"""
+    success: bool = Field(default=True, alias="success")
+    message: str = Field(..., alias="message")
+    
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class AuthStatusResponse(BaseModel):
+    """Response model for auth status"""
+    authenticated: bool = Field(..., alias="authenticated")
+    user: Optional[AuthUser] = Field(None, alias="user")
+    
+    model_config = ConfigDict(populate_by_name=True)

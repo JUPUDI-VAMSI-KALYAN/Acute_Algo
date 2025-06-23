@@ -1,28 +1,190 @@
-import axios from 'axios';
+import axios, { AxiosResponse } from 'axios';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 // Create axios instance with default config
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 180000, // 3 minutes for large repositories like React
-  withCredentials: true, // For https-only cookies
+  timeout: 30000,
+  withCredentials: true, // Important for cookie-based auth
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Export the api instance for direct use
-export { api };
+// Request interceptor for debugging
+api.interceptors.request.use(
+  (config) => {
+    console.log(`Making ${config.method?.toUpperCase()} request to: ${config.url}`);
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 
 // Response interceptor for error handling
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     console.error('API Error:', error.response?.data || error.message);
-    throw error;
+    return Promise.reject(error);
   }
 );
+
+// Authentication API types
+export interface AuthUrlRequest {
+  redirectUrl: string;
+}
+
+export interface AuthUrlResponse {
+  success: boolean;
+  authUrl: string;
+}
+
+export interface AuthCallbackRequest {
+  code: string;
+}
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  name?: string;
+  avatarUrl?: string;
+  githubUsername?: string;
+  createdAt: string;
+}
+
+export interface AuthResponse {
+  success: boolean;
+  user: AuthUser;
+  accessToken: string;
+  refreshToken: string;
+}
+
+export interface UserResponse {
+  success: boolean;
+  user: AuthUser;
+}
+
+export interface LogoutResponse {
+  success: boolean;
+  message: string;
+}
+
+export interface AuthStatusResponse {
+  authenticated: boolean;
+  user?: AuthUser;
+}
+
+// Authentication API functions
+export const authApi = {
+  // Get GitHub OAuth URL
+  getGithubAuthUrl: async (redirectUrl: string): Promise<AuthUrlResponse> => {
+    const response: AxiosResponse<AuthUrlResponse> = await api.post('/auth/github/url', {
+      redirectUrl
+    });
+    return response.data;
+  },
+
+  // Handle GitHub OAuth callback
+  handleGithubCallback: async (code: string): Promise<AuthResponse> => {
+    const response: AxiosResponse<AuthResponse> = await api.post('/auth/github/callback', {
+      code
+    });
+    return response.data;
+  },
+
+  // Get current user
+  getCurrentUser: async (): Promise<UserResponse> => {
+    const response: AxiosResponse<UserResponse> = await api.get('/auth/user');
+    return response.data;
+  },
+
+  // Logout user
+  logout: async (): Promise<LogoutResponse> => {
+    const response: AxiosResponse<LogoutResponse> = await api.post('/auth/logout');
+    return response.data;
+  },
+
+  // Check auth status
+  getAuthStatus: async (): Promise<AuthStatusResponse> => {
+    const response: AxiosResponse<AuthStatusResponse> = await api.get('/auth/status');
+    return response.data;
+  },
+};
+
+// Analysis API functions
+export const analysisApi = {
+  analyzeRepository: async (githubUrl: string) => {
+    const response = await api.post('/analysis/analyze', { githubUrl });
+    return response.data;
+  },
+
+  getRepositories: async () => {
+    const response = await api.get('/analysis/repositories');
+    return response.data;
+  },
+
+  getRepository: async (repoId: string) => {
+    const response = await api.get(`/analysis/repositories/${repoId}`);
+    return response.data;
+  },
+};
+
+// AI API functions
+export const aiApi = {
+  chat: async (message: string, context?: Record<string, unknown>) => {
+    const response = await api.post('/ai/chat', { message, context });
+    return response.data;
+  },
+};
+
+// Database API functions
+export const databaseApi = {
+  getAlgorithms: async () => {
+    const response = await api.get('/database/algorithms');
+    return response.data;
+  },
+
+  getAlgorithm: async (algorithmId: string) => {
+    const response = await api.get(`/database/algorithms/${algorithmId}`);
+    return response.data;
+  },
+
+  getFunctions: async () => {
+    const response = await api.get('/database/functions');
+    return response.data;
+  },
+
+  getFunction: async (functionId: string) => {
+    const response = await api.get(`/database/functions/${functionId}`);
+    return response.data;
+  },
+};
+
+// Feedback API functions
+export const feedbackApi = {
+  createFeatureRequest: async (title: string, description: string) => {
+    const response = await api.post('/feedback/feature-request', { title, description });
+    return response.data;
+  },
+
+  getFeatureRequests: async () => {
+    const response = await api.get('/feedback/feature-requests');
+    return response.data;
+  },
+};
+
+// Health API functions
+export const healthApi = {
+  check: async () => {
+    const response = await api.get('/health');
+    return response.data;
+  },
+};
+
+export default api;
 
 // TypeScript interfaces
 export interface FileCounts {

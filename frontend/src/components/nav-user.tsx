@@ -8,7 +8,6 @@ import {
   LogOut,
   Sparkles,
 } from "lucide-react"
-import { useRouter } from "next/navigation"
 
 import {
   Avatar,
@@ -30,23 +29,28 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { useAuth } from "@/contexts/AuthContext"
 
-export function NavUser({
-  user,
-}: {
-  user: {
-    name: string
-    email: string
-    avatar: string
-  }
-}) {
+export function NavUser() {
   const { isMobile } = useSidebar()
-  const router = useRouter()
+  const { user, logout } = useAuth()
 
-  const handleLogout = () => {
-    // TODO: Add any logout cleanup logic here (clear tokens, etc.)
-    router.push('/login')
+  const handleLogout = async () => {
+    try {
+      await logout()
+    } catch (error) {
+      console.error('Logout failed:', error)
+    }
   }
+
+  if (!user) {
+    return null
+  }
+
+  const userDisplayName = user.name || 'GitHub User'
+  const userInitials = user.name 
+    ? user.name.charAt(0).toUpperCase() 
+    : user.email.charAt(0).toUpperCase()
 
   return (
     <SidebarMenu>
@@ -58,11 +62,11 @@ export function NavUser({
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-10 w-10 rounded-lg">
-                <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                <AvatarImage src={user.avatarUrl || ''} alt={userDisplayName} />
+                <AvatarFallback className="rounded-lg">{userInitials}</AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-lg leading-tight">
-                <span className="truncate font-medium">{user.name}</span>
+                <span className="truncate font-medium">{userDisplayName}</span>
                 <span className="truncate text-xs text-muted-foreground">
                   {user.email}
                 </span>
@@ -79,11 +83,11 @@ export function NavUser({
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-10 w-10 rounded-lg">
-                  <AvatarImage src={user.avatar} alt={user.name} />
-                  <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                  <AvatarImage src={user.avatarUrl || ''} alt={userDisplayName} />
+                  <AvatarFallback className="rounded-lg">{userInitials}</AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-base leading-tight">
-                  <span className="truncate font-medium">{user.name}</span>
+                  <span className="truncate font-medium">{userDisplayName}</span>
                   <span className="truncate text-sm">{user.email}</span>
                 </div>
               </div>
