@@ -2,6 +2,13 @@ import axios, { AxiosResponse } from 'axios';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
+// Debug logging for API configuration
+console.log('🔧 API Configuration:', {
+  baseURL: API_BASE_URL,
+  environment: process.env.NODE_ENV,
+  publicApiUrl: process.env.NEXT_PUBLIC_API_URL
+});
+
 // Create axios instance with default config
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -12,10 +19,40 @@ const api = axios.create({
   },
 });
 
-// Request interceptor for debugging
+// Helper to get token from localStorage
+export const getStoredToken = (): string | null => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('access_token');
+  }
+  return null;
+};
+
+// Helper to store token in localStorage
+export const storeToken = (token: string): void => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('access_token', token);
+  }
+};
+
+// Helper to remove token from localStorage
+export const removeToken = (): void => {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+  }
+};
+
+// Request interceptor for debugging and token injection
 api.interceptors.request.use(
   (config) => {
     console.log(`Making ${config.method?.toUpperCase()} request to: ${config.url}`);
+    
+    // Add Authorization header if token exists and not already present
+    const token = getStoredToken();
+    if (token && !config.headers.Authorization) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    
     return config;
   },
   (error) => {
@@ -23,11 +60,24 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor for error handling
+// Response interceptor for error handling and token management
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     console.error('API Error:', error.response?.data || error.message);
+    
+    // Handle 401 errors by clearing tokens and redirecting to login
+    if (error.response?.status === 401) {
+      removeToken();
+      // Only redirect if we're not already on login/auth pages
+      if (typeof window !== 'undefined' && 
+          !window.location.pathname.includes('/login') && 
+          !window.location.pathname.includes('/auth/callback')) {
+        console.log('Token expired or invalid, redirecting to login');
+        window.location.href = '/login';
+      }
+    }
+    
     return Promise.reject(error);
   }
 );
@@ -92,6 +142,15 @@ export const authApi = {
     const response: AxiosResponse<AuthResponse> = await api.post('/auth/github/callback', {
       code
     });
+    
+    // Store tokens in localStorage for cross-domain compatibility
+    if (response.data.success && response.data.accessToken) {
+      storeToken(response.data.accessToken);
+      if (response.data.refreshToken && typeof window !== 'undefined') {
+        localStorage.setItem('refresh_token', response.data.refreshToken);
+      }
+    }
+    
     return response.data;
   },
 
@@ -104,6 +163,10 @@ export const authApi = {
   // Logout user
   logout: async (): Promise<LogoutResponse> => {
     const response: AxiosResponse<LogoutResponse> = await api.post('/auth/logout');
+    
+    // Clear tokens from localStorage
+    removeToken();
+    
     return response.data;
   },
 

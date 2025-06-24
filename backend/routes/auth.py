@@ -1,5 +1,4 @@
 from fastapi import APIRouter, HTTPException, Header, Cookie, Response
-from fastapi.responses import RedirectResponse
 from typing import Optional
 import logging
 import os
