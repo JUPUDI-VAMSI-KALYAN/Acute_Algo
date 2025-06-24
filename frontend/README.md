@@ -1,22 +1,75 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Acute Algo Frontend
+
+This is the frontend application for Acute Algo, built with Next.js and TypeScript.
+
+## Environment Configuration
+
+For proper local and production authentication, create a `.env.local` file in the frontend directory:
+
+```bash
+# Frontend Environment Variables (.env.local)
+
+# API Backend URL
+NEXT_PUBLIC_API_URL=http://localhost:8000
+
+# Frontend Site URL (used for OAuth callbacks)
+# Development
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+
+# Production example:
+# NEXT_PUBLIC_SITE_URL=https://your-production-domain.com
+```
+
+**Important Notes:**
+- Variables must be prefixed with `NEXT_PUBLIC_` to be available in the browser
+- `NEXT_PUBLIC_SITE_URL` is crucial for OAuth callback URL generation
+- For production, set `NEXT_PUBLIC_SITE_URL` to your actual domain
 
 ## Getting Started
 
-First, run the development server:
+First, install dependencies:
+
+```bash
+npm install
+```
+
+Then, run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Authentication Flow
+
+The application uses GitHub OAuth for authentication:
+
+1. User clicks "Login with GitHub"
+2. System generates callback URL using `NEXT_PUBLIC_SITE_URL` or `window.location.origin`
+3. User is redirected to GitHub OAuth
+4. GitHub redirects back to `/auth/callback` with authorization code
+5. Frontend exchanges code for user session via backend API
+
+## Debugging Authentication
+
+Use the built-in debug utilities:
+
+```javascript
+// In browser console
+import { authDebug } from '@/lib/auth-debug';
+authDebug.debugAuthFlow(); // Complete auth flow debug
+authDebug.checkEnvironment(); // Check environment variables
+authDebug.checkTokenStatus(); // Check stored tokens
+```
+
+## Build
+
+To build for production:
+
+```bash
+npm run build
+```
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 

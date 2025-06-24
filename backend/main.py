@@ -3,6 +3,7 @@ import uvicorn
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+import os
 from routes import analysis, ai, database, health, feedback, auth
 
 # Configure logging
@@ -27,13 +28,29 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Dynamic CORS origins based on environment
+cors_origins = [
+    "http://localhost:3000",  # Local development
+    "http://127.0.0.1:3000",  # Alternative local
+]
+
+# Add production URL if it exists
+frontend_url = os.getenv("FRONTEND_URL")
+if frontend_url:
+    cors_origins.append(frontend_url)
+    logger.info(f"Added frontend URL to CORS: {frontend_url}")
+
+# Add fallback production URL for backwards compatibility
+production_url = "https://walrus-app-2-ono4l.ondigitalocean.app"
+if production_url not in cors_origins:
+    cors_origins.append(production_url)
+
+logger.info(f"CORS origins configured: {cors_origins}")
+
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",  # Local development
-        "https://walrus-app-2-ono4l.ondigitalocean.app",  # Production frontend
-    ],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -1,12 +1,15 @@
 import axios, { AxiosResponse } from 'axios';
+import { getApiUrl, getSiteUrl } from './environment';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = getApiUrl();
 
 // Debug logging for API configuration
 console.log('🔧 API Configuration:', {
   baseURL: API_BASE_URL,
   environment: process.env.NODE_ENV,
-  publicApiUrl: process.env.NEXT_PUBLIC_API_URL
+  publicApiUrl: process.env.NEXT_PUBLIC_API_URL,
+  siteUrl: getSiteUrl(),
+  currentOrigin: typeof window !== 'undefined' ? window.location.origin : 'server-side'
 });
 
 // Create axios instance with default config
@@ -42,17 +45,13 @@ export const removeToken = (): void => {
   }
 };
 
-// Request interceptor for debugging and token injection
+// Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
-    console.log(`Making ${config.method?.toUpperCase()} request to: ${config.url}`);
-    
-    // Add Authorization header if token exists and not already present
     const token = getStoredToken();
-    if (token && !config.headers.Authorization) {
+    if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    
     return config;
   },
   (error) => {
@@ -131,14 +130,17 @@ export interface AuthStatusResponse {
 export const authApi = {
   // Get GitHub OAuth URL
   getGithubAuthUrl: async (redirectUrl: string): Promise<AuthUrlResponse> => {
+    console.log('📤 Requesting GitHub auth URL with redirect:', redirectUrl);
     const response: AxiosResponse<AuthUrlResponse> = await api.post('/auth/github/url', {
       redirectUrl
     });
+    console.log('📥 Received GitHub auth URL response:', response.data);
     return response.data;
   },
 
   // Handle GitHub OAuth callback
   handleGithubCallback: async (code: string): Promise<AuthResponse> => {
+    console.log('📤 Handling GitHub callback with code:', code ? 'present' : 'missing');
     const response: AxiosResponse<AuthResponse> = await api.post('/auth/github/callback', {
       code
     });
@@ -149,6 +151,7 @@ export const authApi = {
       if (response.data.refreshToken && typeof window !== 'undefined') {
         localStorage.setItem('refresh_token', response.data.refreshToken);
       }
+      console.log('✅ Tokens stored successfully');
     }
     
     return response.data;

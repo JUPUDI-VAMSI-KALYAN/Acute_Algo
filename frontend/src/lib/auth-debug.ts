@@ -14,6 +14,7 @@ export const authDebug = {
     console.log('- Access Token:', accessToken ? 'Present' : 'Missing');
     console.log('- Refresh Token:', refreshToken ? 'Present' : 'Missing');
     console.log('- Current URL:', window.location.href);
+    console.log('- Current Origin:', window.location.origin);
     
     if (accessToken) {
       try {
@@ -28,6 +29,25 @@ export const authDebug = {
         console.log('- Token Format: Not a valid JWT');
       }
     }
+  },
+  
+  // Check environment configuration
+  checkEnvironment: () => {
+    console.log('🌍 Environment Debug:');
+    console.log('- NODE_ENV:', process.env.NODE_ENV);
+    console.log('- NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL);
+    console.log('- NEXT_PUBLIC_SITE_URL:', process.env.NEXT_PUBLIC_SITE_URL);
+    
+    if (typeof window !== 'undefined') {
+      console.log('- Current Origin:', window.location.origin);
+      console.log('- Current Hostname:', window.location.hostname);
+      console.log('- Is Localhost:', window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    }
+    
+    // Determine effective site URL
+    const effectiveSiteUrl = process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+    console.log('- Effective Site URL:', effectiveSiteUrl);
+    console.log('- Expected Callback URL:', `${effectiveSiteUrl}/auth/callback`);
   },
   
   // Clear all auth data
@@ -48,9 +68,23 @@ export const authDebug = {
       const response = await fetch(`${API_BASE_URL}/health`);
       const data = await response.json();
       console.log('✅ API Response:', data);
+      
+      // Test CORS
+      console.log('🔗 Testing CORS headers...');
+      console.log('- Access-Control-Allow-Origin:', response.headers.get('Access-Control-Allow-Origin'));
+      console.log('- Access-Control-Allow-Credentials:', response.headers.get('Access-Control-Allow-Credentials'));
     } catch (error) {
       console.error('❌ API Test Failed:', error);
     }
+  },
+  
+  // Complete auth flow debug
+  debugAuthFlow: () => {
+    console.log('🔄 Complete Auth Flow Debug:');
+    authDebug.checkEnvironment();
+    authDebug.checkTokenStatus();
+    console.log('---');
+    authDebug.testAPI();
   }
 };
 

@@ -9,12 +9,19 @@ import { Button } from "@/components/ui/button"
 import { RotateCcw } from "lucide-react"
 import { useChatContext } from "@/contexts/ChatContext"
 import { getRepositoryAnalysis } from "@/lib/api"
+import { useSidebar } from "@/components/ui/sidebar"
 
 export default function PlaygroundPage() {
   const [isAnalysisPanelCollapsed, setIsAnalysisPanelCollapsed] = useState(false);
   const { setSelectedAlgorithm, setCurrentRepository } = useChatContext();
+  const { setOpen } = useSidebar();
   const chatRef = useRef<PlaygroundChatRef>(null);
   const searchParams = useSearchParams();
+
+  // Auto-hide sidebar when entering playground
+  useEffect(() => {
+    setOpen(false);
+  }, [setOpen]);
 
   // Load repository from URL parameters
   useEffect(() => {
@@ -74,22 +81,22 @@ export default function PlaygroundPage() {
         </Button>
       </div>
       
-      {/* Three-panel layout */}
+      {/* Three-panel layout: Code Editor (Left), Chat (Middle), Analysis (Right) */}
       <div className={`flex-1 grid gap-4 min-h-0 transition-all duration-500 ease-in-out ${
         isAnalysisPanelCollapsed 
           ? 'grid-cols-1 lg:grid-cols-[1fr_1fr_auto]' 
           : 'grid-cols-1 lg:grid-cols-3'
       }`}>
-        {/* Chat Panel - Left */}
-        <div className="flex flex-col rounded-lg border shadow-sm overflow-hidden transition-all duration-500 ease-in-out">
-          <PlaygroundChat ref={chatRef} />
-        </div>
-        
-        {/* Code Editor Panel - Center */}
+        {/* Code Editor Panel - Left */}
         <div className="flex flex-col rounded-lg border shadow-sm overflow-hidden transition-all duration-500 ease-in-out">
           <div className="flex-1 min-h-0">
             <CodeEditor />
           </div>
+        </div>
+        
+        {/* Chat Panel - Middle */}
+        <div className="flex flex-col rounded-lg border shadow-sm overflow-hidden transition-all duration-500 ease-in-out">
+          <PlaygroundChat ref={chatRef} />
         </div>
         
         {/* Analysis Panel - Right */}

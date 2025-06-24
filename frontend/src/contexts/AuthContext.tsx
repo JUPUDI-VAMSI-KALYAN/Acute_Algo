@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { authApi, AuthUser } from '@/lib/api';
+import { getCallbackUrl, logEnvironmentInfo } from '@/lib/environment';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -12,11 +13,11 @@ interface AuthContextType {
   refreshUser: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
 interface AuthProviderProps {
   children: ReactNode;
 }
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -27,6 +28,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Check authentication status on mount
   useEffect(() => {
     checkAuthStatus();
+    // Log environment info on mount for debugging
+    logEnvironmentInfo();
   }, []);
 
   const checkAuthStatus = async () => {
@@ -73,13 +76,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setIsLoading(true);
       
-      // Default redirect URL to dashboard
-      const callbackUrl = redirectUrl || `${window.location.origin}/auth/callback`;
+      // Use provided URL or generate callback URL using environment utility
+      const callbackUrl = redirectUrl || getCallbackUrl();
+      
+      console.log('🔗 Using callback URL:', callbackUrl);
       
       const response = await authApi.getGithubAuthUrl(callbackUrl);
       
       if (response.success && response.authUrl) {
-        console.log('Redirecting to GitHub OAuth:', response.authUrl);
+        console.log('✅ Redirecting to GitHub OAuth:', response.authUrl);
         window.location.href = response.authUrl;
       } else {
         throw new Error('Failed to get GitHub auth URL');
@@ -146,7 +151,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   );
 };
 
-export const useAuth = (): AuthContextType => {
+export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
