@@ -1,5 +1,5 @@
 import os
-from typing import Optional, Dict, Any
+from typing import Dict, Any
 from supabase import create_client, Client
 from fastapi import HTTPException
 import logging

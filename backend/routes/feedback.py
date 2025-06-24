@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Query
 from models import (
@@ -9,7 +8,6 @@ from models import (
     FeedbackListResponse,
     UpvoteRequest,
     UpvoteResponse,
-    PublicFeatureRequest,
     PublicFeatureListResponse,
 )
 from services.database_service import DatabaseService

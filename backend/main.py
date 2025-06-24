@@ -3,7 +3,6 @@ import uvicorn
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from services.database_service import db_service
 from routes import analysis, ai, database, health, feedback, auth
 
 # Configure logging

@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { authDebug } from '@/lib/auth-debug';
 
 function AuthCallbackContent() {
   const router = useRouter();
@@ -60,8 +61,14 @@ function AuthCallbackContent() {
           console.log('GitHub Username:', response.user.githubUsername || 'N/A');
           console.log('Avatar URL:', response.user.avatarUrl || 'N/A');
           console.log('Created At:', response.user.createdAt);
+          console.log('Access Token Stored:', response.accessToken ? 'Yes' : 'No');
           console.log('=========================================');
           console.log('✅ Authentication completed successfully - redirecting to dashboard');
+
+          // Debug: Check token storage
+          setTimeout(() => {
+            authDebug.checkTokenStatus();
+          }, 100);
 
           // Clear the URL parameters to prevent reuse
           window.history.replaceState({}, document.title, window.location.pathname);

@@ -32,6 +32,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const checkAuthStatus = async () => {
     try {
       setIsLoading(true);
+      
+      // Check if we have a stored token first
+      const storedToken = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+      
+      if (!storedToken) {
+        setUser(null);
+        console.log('No stored token found');
+        return;
+      }
+      
       const response = await authApi.getAuthStatus();
       
       if (response.authenticated && response.user) {
@@ -40,10 +50,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } else {
         setUser(null);
         console.log('User not authenticated');
+        // Clear invalid token
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
+        }
       }
     } catch (error) {
       console.error('Auth status check failed:', error);
       setUser(null);
+      // Clear invalid token on error
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -82,8 +102,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       window.location.href = '/login';
     } catch (error) {
       console.error('Logout failed:', error);
-      // Even if logout fails, clear user state
+      // Even if logout fails, clear user state and tokens
       setUser(null);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+      }
       window.location.href = '/login';
     } finally {
       setIsLoading(false);
